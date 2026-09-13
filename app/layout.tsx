@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { PwaRegister } from "./pwa-register";
 
 export const metadata: Metadata = {
   title: "Bubinga Market Scanner",
@@ -8,7 +9,14 @@ export const metadata: Metadata = {
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
+    apple: "/icon-192.png",
   },
+};
+
+export const viewport = {
+  themeColor: "#07110d",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -18,7 +26,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <PwaRegister />
+        {children}
+      </body>
     </html>
   );
 }

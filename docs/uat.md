@@ -16,6 +16,8 @@ Phase 1 MVPの利用者視点テスト。スコアはテクニカル条件への
 - [x] NOW and SOON share a single five-result limit
 - [x] Final score combines 30m and 5m at 50% each
 - [x] Requests omit browser credentials by default
+- [x] Manifest includes 192px, 512px, and maskable icons
+- [x] Service Worker caches the application shell and supports offline navigation fallback
 
 ## Pending interactive UAT
 
@@ -25,7 +27,7 @@ Phase 1 MVPの利用者視点テスト。スコアはテクニカル条件への
 - [ ] Confirm retry UI after a simulated data failure
 - [ ] Confirm cards remain readable at 360px viewport width
 - [ ] Install from the PWA manifest on an Android device
-- [ ] Confirm offline shell behavior
+- [ ] Confirm offline shell behavior on an Android device
 
 ## External-data validation pending
 
