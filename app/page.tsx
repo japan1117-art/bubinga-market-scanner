@@ -93,15 +93,15 @@ function CandidateGroup({ icon, title, items, tone }: { icon: React.ReactNode; t
         {items.map((item, index) => (
           <article key={item.assetId} className="rounded-[22px] border border-white/10 bg-[#0c1a14] p-5">
             <div className="flex items-start justify-between gap-4">
-              <div className="flex gap-3"><span className="grid h-8 w-8 place-items-center rounded-full bg-white/[0.06] text-xs font-semibold text-white/45">{index + 1}</span><div><h4 className="font-semibold tracking-tight">{item.name}</h4><p className="mt-1 text-xs text-white/40">Payout {item.payout}%</p></div></div>
+              <div className="flex gap-3"><span className="grid h-8 w-8 place-items-center rounded-full bg-white/[0.06] text-xs font-semibold text-white/45">{index + 1}</span><div><h4 className="font-semibold tracking-tight">{item.name}</h4><p className="mt-1 text-xs text-white/40">Payout {item.payout}% · 30M {item.score30m} / 5M {item.score5m}</p></div></div>
               <div className="text-right"><strong className="text-3xl tracking-[-0.05em]">{item.score}</strong><span className="ml-1 text-xs text-white/35">点</span></div>
             </div>
             <div className="mt-4 grid grid-cols-5 gap-2 border-t border-white/10 pt-4 text-center text-[11px]">
               <Metric label="1H MA" value={item.direction === "BULL" ? "↑" : "↓"} />
               <Metric label="30M MA" value={item.direction === "BULL" ? "↑" : "↓"} />
-              <Metric label="AO" value={symbol(item.phases.ao)} />
-              <Metric label="RSI" value={item.rsi.toFixed(0)} />
-              <Metric label="Stoch" value={symbol(item.phases.stochastic)} />
+              <Metric label="5M AO" value={symbol(item.phases.ao)} />
+              <Metric label="5M RSI" value={item.rsi.toFixed(0)} />
+              <Metric label="5M Stoch" value={symbol(item.phases.stochastic)} />
             </div>
           </article>
         ))}

@@ -88,11 +88,44 @@ export function classifyStochastic(k: number[], d: number[], direction: Directio
   return "none";
 }
 
-export function scoreAsset(asset: { id: number; name: string; payout: number }, candles30m: Candle[], candles1h: Candle[], direction: Direction): Candidate | null {
+export interface IndicatorScore {
+  score: number;
+  rsi: number;
+  phases: { ao: Phase; rsi: Phase; stochastic: Phase };
+}
+
+export function scoreIndicators(candles: Candle[], direction: Direction): IndicatorScore {
+  const aoValues = ao(candles);
+  const rsiValues = rsi(candles.map((c) => c.close));
+  const stoch = stochastic(candles);
+  const phases = {
+    ao: classifyAo(aoValues, direction),
+    rsi: classifyRsi(rsiValues, direction),
+    stochastic: classifyStochastic(stoch.k, stoch.d, direction),
+  };
+  const score = 35 * MULTIPLIER[phases.ao] + 30 * MULTIPLIER[phases.rsi] + 35 * MULTIPLIER[phases.stochastic];
+  return { score, rsi: rsiValues.at(-1) ?? 0, phases };
+}
+
+export function combineTimeframeScores(score30m: number, score5m: number): number {
+  return Math.round(score30m * 0.5 + score5m * 0.5);
+}
+
+export function scoreAsset(
+  asset: { id: number; name: string; payout: number },
+  candles5m: Candle[],
+  candles30m: Candle[],
+  candles1h: Candle[],
+  direction: Direction,
+): Candidate | null {
   const ma30m = maGate(candles30m, direction); const ma1h = maGate(candles1h, direction);
   if (!ma30m || !ma1h) return null;
-  const aoValues = ao(candles30m); const rsiValues = rsi(candles30m.map((c) => c.close)); const stoch = stochastic(candles30m);
-  const phases = { ao: classifyAo(aoValues, direction), rsi: classifyRsi(rsiValues, direction), stochastic: classifyStochastic(stoch.k, stoch.d, direction) };
-  const score = Math.round(35 * MULTIPLIER[phases.ao] + 30 * MULTIPLIER[phases.rsi] + 35 * MULTIPLIER[phases.stochastic]);
-  return { assetId: asset.id, name: asset.name, payout: asset.payout, direction, score, ma1h, ma30m, rsi: rsiValues.at(-1) ?? 0, phases };
+  const m30 = scoreIndicators(candles30m, direction);
+  const m5 = scoreIndicators(candles5m, direction);
+  return {
+    assetId: asset.id, name: asset.name, payout: asset.payout, direction,
+    score: combineTimeframeScores(m30.score, m5.score),
+    score5m: Math.round(m5.score), score30m: Math.round(m30.score),
+    ma1h, ma30m, rsi: m5.rsi, phases: m5.phases,
+  };
 }

@@ -51,7 +51,7 @@
 
 ## Candle adapter v0.1
 
-- DevToolsで確認済みの`dataization=30m`のみを許可
+- DevToolsで確認済みの`dataization=30m`と、追加仕様の`dataization=5m`を扱う。5m指定値は実通信確認待ち
 - `from`/`to`は単位未確認のため、呼び出し元が明示した値をそのまま利用
 - Cookie・Authorizationを送らない
 - ISO日時、epoch秒、epochミリ秒をUTC ISOへ正規化

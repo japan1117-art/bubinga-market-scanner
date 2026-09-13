@@ -2,8 +2,8 @@ import type { Candle } from "./types.ts";
 import { BubingaDataError } from "./bubinga-assets.ts";
 
 const API_ORIGIN = "https://api.bubinga.com";
-export const CONFIRMED_TIMEFRAMES = ["30m"] as const;
-export type ConfirmedTimeframe = (typeof CONFIRMED_TIMEFRAMES)[number];
+export const SUPPORTED_TIMEFRAMES = ["5m", "30m"] as const;
+export type SupportedTimeframe = (typeof SUPPORTED_TIMEFRAMES)[number];
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -99,7 +99,7 @@ export function normalizeCandlesResponse(payload: unknown, intervalMinutes = 30)
 
 export async function fetchBubingaCandles(options: {
   assetId: number;
-  timeframe: ConfirmedTimeframe;
+  timeframe: SupportedTimeframe;
   from: string;
   to: string;
   signal?: AbortSignal;
@@ -130,7 +130,7 @@ export async function fetchBubingaCandles(options: {
       signal: controller.signal,
     });
     if (!response.ok) throw new BubingaDataError(`Candles API returned HTTP ${response.status}.`, "HTTP");
-    return normalizeCandlesResponse(await response.json(), 30);
+    return normalizeCandlesResponse(await response.json(), options.timeframe === "5m" ? 5 : 30);
   } catch (error) {
     if (error instanceof BubingaDataError) throw error;
     throw new BubingaDataError(error instanceof Error ? error.message : "Candles API request failed.", "NETWORK");

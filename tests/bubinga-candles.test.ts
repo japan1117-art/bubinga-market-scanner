@@ -53,3 +53,22 @@ test("builds the confirmed 30m request without credentials", async () => {
   assert.match(requestUrl, /assets\/50\/candles/);
   assert.match(requestUrl, /dataization=30m/);
 });
+
+test("builds a 5m request and validates five-minute gaps", async () => {
+  let requestUrl = "";
+  const result = await fetchBubingaCandles({
+    assetId: 50,
+    timeframe: "5m",
+    from: "1789257600",
+    to: "1789258500",
+    fetcher: async (input) => {
+      requestUrl = String(input);
+      return new Response(JSON.stringify([
+        valid("2026-09-13T00:00:00Z"),
+        valid("2026-09-13T00:15:00Z"),
+      ]), { status: 200 });
+    },
+  });
+  assert.match(requestUrl, /dataization=5m/);
+  assert.equal(result.gaps[0].missing, 2);
+});

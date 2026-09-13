@@ -38,3 +38,11 @@ Bubingaの取引可能銘柄をペイアウト順に20件まで取得し、選�
 - 最大20件。取引可能銘柄が20件未満なら存在する件数のみ返す
 - minimum payoutは設定可能だが、初期値は0
 - binary/turboの選択はデータ正規化層の責務とし、ランキング層は分離する
+
+## Multi-timeframe scoring v0.2
+
+- 1Hと30MのMAは方向ゲート
+- 30MのAO/RSI/Stochasticを100点で採点
+- 5MのAO/RSI/Stochasticを100点で採点
+- 最終点は30M 50% + 5M 50%
+- 80〜100をNOW、60〜79をSOON、59以下を非表示

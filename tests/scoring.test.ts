@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { ema, rsi, stochastic } from "../src/lib/indicators.ts";
-import { classifyAo, classifyRsi, classifyStochastic, DEFAULT_MA_GATE_CONFIG, maGate } from "../src/lib/scoring.ts";
+import { classifyAo, classifyRsi, classifyStochastic, combineTimeframeScores, DEFAULT_MA_GATE_CONFIG, maGate } from "../src/lib/scoring.ts";
 import type { Candle } from "../src/lib/types.ts";
 
 function trend(sign = 1): Candle[] {
@@ -25,6 +25,11 @@ test("default MA calibration remains EMA20/EMA50 with three slope points", () =>
   assert.deepEqual(DEFAULT_MA_GATE_CONFIG, { fastPeriod: 20, slowPeriod: 50, slopePoints: 3, requirePriceSide: true, requireFastSlowAlignment: true });
 });
 test("All early phases total 70 by specification", () => assert.equal(Math.round(35 * 0.7 + 30 * 0.7 + 35 * 0.7), 70));
+test("combines 30m and 5m scores at equal weights", () => {
+  assert.equal(combineTimeframeScores(90, 70), 80);
+  assert.equal(combineTimeframeScores(70, 90), 80);
+  assert.equal(combineTimeframeScores(100, 59), 80);
+});
 test("RSI phase boundaries", () => { assert.equal(classifyRsi([48, 58], "BULL"), "optimal"); assert.equal(classifyRsi([61, 55], "BEAR"), "early"); });
 test("AO bull early below zero and improving", () => assert.equal(classifyAo([-0.4, -0.3, -0.2, -0.1], "BULL"), "early"));
 test("Stochastic bull optimal after cross", () => assert.equal(classifyStochastic([20, 35], [25, 30], "BULL"), "optimal"));
