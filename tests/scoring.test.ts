@@ -33,3 +33,53 @@ test("combines 30m and 5m scores at equal weights", () => {
 test("RSI phase boundaries", () => { assert.equal(classifyRsi([48, 58], "BULL"), "optimal"); assert.equal(classifyRsi([61, 55], "BEAR"), "early"); });
 test("AO bull early below zero and improving", () => assert.equal(classifyAo([-0.4, -0.3, -0.2, -0.1], "BULL"), "early"));
 test("Stochastic bull optimal after cross", () => assert.equal(classifyStochastic([20, 35], [25, 30], "BULL"), "optimal"));
+
+test("AO phases are directionally symmetric", () => {
+  assert.equal(classifyAo([-0.4, -0.3, -0.2, -0.1], "BULL"), "early");
+  assert.equal(classifyAo([0.4, 0.3, 0.2, 0.1], "BEAR"), "early");
+  assert.equal(classifyAo([-0.1, 0.05, 0.15, 0.25], "BULL"), "optimal");
+  assert.equal(classifyAo([0.1, -0.05, -0.15, -0.25], "BEAR"), "optimal");
+  assert.equal(classifyAo([0.1, 0.25, 0.31, 0.33], "BULL"), "late");
+  assert.equal(classifyAo([-0.1, -0.25, -0.31, -0.33], "BEAR"), "late");
+});
+
+test("AO returns none when momentum moves against the selected direction", () => {
+  assert.equal(classifyAo([0.1, 0.2, 0.3, 0.2], "BULL"), "none");
+  assert.equal(classifyAo([-0.1, -0.2, -0.3, -0.2], "BEAR"), "none");
+});
+
+test("RSI bull thresholds classify early, optimal, late and overheated", () => {
+  assert.equal(classifyRsi([41, 42], "BULL"), "early");
+  assert.equal(classifyRsi([49, 50], "BULL"), "optimal");
+  assert.equal(classifyRsi([64, 65], "BULL"), "optimal");
+  assert.equal(classifyRsi([65, 65.1], "BULL"), "late");
+  assert.equal(classifyRsi([71, 72], "BULL"), "late");
+  assert.equal(classifyRsi([72, 72.1], "BULL"), "none");
+});
+
+test("RSI bear thresholds classify early, optimal, late and oversold", () => {
+  assert.equal(classifyRsi([59, 58], "BEAR"), "early");
+  assert.equal(classifyRsi([51, 50], "BEAR"), "optimal");
+  assert.equal(classifyRsi([36, 35], "BEAR"), "optimal");
+  assert.equal(classifyRsi([35, 34.9], "BEAR"), "late");
+  assert.equal(classifyRsi([29, 28], "BEAR"), "late");
+  assert.equal(classifyRsi([28, 27.9], "BEAR"), "none");
+});
+
+test("Stochastic detects pre-cross, post-cross and overextended bull phases", () => {
+  assert.equal(classifyStochastic([10, 18], [20, 19], "BULL"), "early");
+  assert.equal(classifyStochastic([20, 35], [25, 30], "BULL"), "optimal");
+  assert.equal(classifyStochastic([78, 85], [75, 80], "BULL"), "late");
+});
+
+test("Stochastic detects pre-cross, post-cross and overextended bear phases", () => {
+  assert.equal(classifyStochastic([90, 82], [80, 81], "BEAR"), "early");
+  assert.equal(classifyStochastic([80, 65], [75, 70], "BEAR"), "optimal");
+  assert.equal(classifyStochastic([22, 15], [25, 20], "BEAR"), "late");
+});
+
+test("phase classifiers fail closed with insufficient values", () => {
+  assert.equal(classifyAo([0.1, 0.2], "BULL"), "none");
+  assert.equal(classifyRsi([58], "BULL"), "none");
+  assert.equal(classifyStochastic([30], [25], "BULL"), "none");
+});

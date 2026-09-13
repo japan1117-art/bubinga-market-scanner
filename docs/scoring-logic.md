@@ -16,6 +16,27 @@
 
 倍率はEarly 0.70、Optimal 1.00、Late 0.55、条件外0。合計は画面表示時に整数へ四捨五入する。
 
+## Indicator phase boundaries
+
+### AO
+
+- BULL Early: 0未満で上昇、BEAR Early: 0超で下降
+- Optimal: 0ラインを選択方向へ越え、3区間連続で改善
+- Late: 選択方向側だが直近の改善幅が1区間前の55%未満
+- 逆行または履歴不足: 0点
+
+### RSI
+
+- BULL: 42〜50未満かつ上昇=Early、50〜65=Optimal、65超〜72=Late、72超=0点
+- BEAR: 50超〜58かつ下降=Early、35〜50=Optimal、28〜35未満=Late、28未満=0点
+
+### Stochastic
+
+- Early: GC/DC直前への接近、または20/80からの反転開始
+- Optimal: BULLは%K>%Dかつ20〜70、BEARは%K<%Dかつ30〜80
+- Late: BULLは70超、BEARは30未満でクロス方向を維持
+- 逆行または履歴不足: 0点
+
 ## Timeframe
 
 MAゲートは1Hと30M。AO・RSI・Stochasticは30Mと5Mでそれぞれ0〜100点を算出し、最終スコアは次式とする。
