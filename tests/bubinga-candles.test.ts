@@ -41,8 +41,8 @@ test("builds the confirmed 30m request without credentials", async () => {
   const result = await fetchBubingaCandles({
     assetId: 50,
     timeframe: "30m",
-    from: "1789257600",
-    to: "1789261200",
+    from: "2026-09-13T00:00:00Z",
+    to: "2026-09-13T01:00:00Z",
     fetcher: async (input, init) => {
       requestUrl = String(input);
       assert.equal(init?.credentials, "omit");
@@ -51,7 +51,7 @@ test("builds the confirmed 30m request without credentials", async () => {
   });
   assert.equal(result.candles.length, 1);
   assert.match(requestUrl, /assets\/50\/candles/);
-  assert.match(requestUrl, /dataization=30m/);
+  assert.match(requestUrl, /detalization=30m/);
 });
 
 test("builds a 5m request and validates five-minute gaps", async () => {
@@ -59,8 +59,8 @@ test("builds a 5m request and validates five-minute gaps", async () => {
   const result = await fetchBubingaCandles({
     assetId: 50,
     timeframe: "5m",
-    from: "1789257600",
-    to: "1789258500",
+    from: "2026-09-13T00:00:00Z",
+    to: "2026-09-13T00:15:00Z",
     fetcher: async (input) => {
       requestUrl = String(input);
       return new Response(JSON.stringify([
@@ -69,6 +69,25 @@ test("builds a 5m request and validates five-minute gaps", async () => {
       ]), { status: 200 });
     },
   });
-  assert.match(requestUrl, /dataization=5m/);
+  assert.match(requestUrl, /detalization=5m/);
   assert.equal(result.gaps[0].missing, 2);
+});
+
+test("builds a confirmed 1h request and validates hourly gaps", async () => {
+  let requestUrl = "";
+  const result = await fetchBubingaCandles({
+    assetId: 49,
+    timeframe: "1h",
+    from: "2026-09-13T00:00:00Z",
+    to: "2026-09-13T03:00:00Z",
+    fetcher: async (input) => {
+      requestUrl = String(input);
+      return new Response(JSON.stringify({ data: [
+        valid("2026-09-13T00:00:00Z"),
+        valid("2026-09-13T02:00:00Z"),
+      ] }), { status: 200 });
+    },
+  });
+  assert.match(requestUrl, /detalization=1h/);
+  assert.equal(result.gaps[0].missing, 1);
 });

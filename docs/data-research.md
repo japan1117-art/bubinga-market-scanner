@@ -6,15 +6,15 @@
 - Pagination observed: `pagination[limit]=250&pagination[offset]=0`
 - Fields observed: `id`, `name`, `code`, `enabled`, `category`, `profitability`
 - Candles: `GET /api/v1/assets/{asset_id}/candles`
-- Candle query observed: `from`, `to`, `dataization=30m`
+- Candle query originally observed as `dataization=30m`; live verification on 2026-09-13 established the accepted key is `detalization`
 - Candle fields observed: `time`, `open`, `high`, `low`, `close`
 - WebSocket observed: `wss://ws.bubinga.com/connection/websocket`
 - Quote channel observed: `anonymous:assets/{asset_id}/quotes`
 
 ## Known mappings (do not hardcode as primary source)
 
-- 50 = GSMI
-- 49 = LATAM
+- 49 = GSMI
+- 50 = LATAM
 - 99 = ASIA
 - 154 = BITCOIN (OTC)
 
@@ -25,8 +25,7 @@
 - PWA originからのCORS可否
 - `profitability.binary.current`と`turbo.current`の採用ルール
 - 取引可能判定に`enabled`以外の営業時間フィールドが必要か
-- 1Hの正式な`dataization`値
-- `from/to`の単位、タイムゾーン、境界、最大取得本数
+- `from/to`の最大期間と最大取得本数
 - 最終要素が確定足か形成中足か
 - 欠損・重複・順序逆転の扱い
 - レート制限とキャッシュ方針
@@ -45,14 +44,20 @@
 - 不正レコードと重複IDを除外
 - 10秒timeout、HTTP・network・response形式エラーを区別
 
-### 未検証
+### Live unauthenticated verification（2026-09-13）
 
-実行環境から`api.bubinga.com`へのGETは20秒でタイムアウトした。HTTP応答本文を取得できていないため、認証要否、実際のenvelope、CORS、現在のフィールド型は未確認。これはBubinga側の認証要求ではなく、実行環境の通信制限である可能性も残る。
+- Assets APIはCookie・AuthorizationなしでHTTP 200。`{ "data": [...] }`として160件を取得し、観測時点でtop-level `enabled=true`は71件
+- `id / name / code / enabled / profitability`を実レスポンスで確認
+- 現在のマスターでは`49=GSMI`、`50=LATAM`。過去の手動対応表と逆だったため、IDをハードコードしない方針が必須
+- Candlesの`from / to`はISO日時を受理。Unix秒はHTTP 400
+- 正しいquery keyは`detalization`。`dataization`はextra fieldとしてHTTP 400
+- Asset 49で`detalization=5m / 30m / 1h`がすべてHTTP 200となり、`{ "data": [...] }`のOHLCを取得
+- 技術的到達性の確認であり、再配布・商用利用の許諾を意味しない
 
 ## Candle adapter v0.1
 
-- DevToolsで確認済みの`dataization=30m`と、追加仕様の`dataization=5m`を扱う。5m指定値は実通信確認待ち
-- `from`/`to`は単位未確認のため、呼び出し元が明示した値をそのまま利用
+- 実通信確認済みの`detalization=5m / 30m / 1h`を扱う
+- `from`/`to`はISO日時を利用する
 - Cookie・Authorizationを送らない
 - ISO日時、epoch秒、epochミリ秒をUTC ISOへ正規化
 - OHLCの高値・安値関係が不正な足、負数、必須値欠損を除外

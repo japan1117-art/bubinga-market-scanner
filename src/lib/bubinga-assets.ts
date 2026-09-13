@@ -22,12 +22,18 @@ function currentProfitability(raw: UnknownRecord): number | null {
   const profitability = record(raw.profitability);
   const binary = record(profitability?.binary);
   const turbo = record(profitability?.turbo);
-  const candidates = [binary?.current, turbo?.current];
+  const candidates = [binary, turbo]
+    .filter((product) => product?.enabled === true)
+    .map((product) => product?.current);
+  let highest: number | null = null;
   for (const value of candidates) {
     const numeric = typeof value === "number" ? value : typeof value === "string" ? Number(value) : NaN;
-    if (Number.isFinite(numeric) && numeric >= 0) return numeric <= 1 ? numeric * 100 : numeric;
+    if (Number.isFinite(numeric) && numeric >= 0) {
+      const percent = numeric <= 1 ? numeric * 100 : numeric;
+      highest = highest === null ? percent : Math.max(highest, percent);
+    }
   }
-  return null;
+  return highest;
 }
 
 export function normalizeAsset(raw: unknown): Asset | null {
