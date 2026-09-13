@@ -1,5 +1,5 @@
 import { fetchBubingaAssets } from "./bubinga-assets.ts";
-import { fetchBubingaCandles, type SupportedTimeframe } from "./bubinga-candles.ts";
+import { fetchBubingaCandles, type CandleValidation, type SupportedTimeframe } from "./bubinga-candles.ts";
 import { rankTradableAssets } from "./asset-ranking.ts";
 import { selectTopCandidates } from "./candidate-selection.ts";
 import { maGate, scoreAsset } from "./scoring.ts";
@@ -7,6 +7,8 @@ import type { Asset, Candle, Candidate, Direction, ScanResult } from "./types.ts
 
 const TARGET_LIMIT = 20;
 const CONCURRENCY = 4;
+const CANDLE_CACHE_MS: Record<SupportedTimeframe, number> = { "5m": 30_000, "30m": 120_000, "1h": 120_000 };
+const candleCache = new Map<string, { expiresAt: number; value: CandleValidation }>();
 const HISTORY_MS: Record<SupportedTimeframe, number> = {
   "5m": 18 * 60 * 60_000,
   "30m": 3 * 24 * 60 * 60_000,
@@ -21,6 +23,10 @@ const INTERVAL_MS: Record<SupportedTimeframe, number> = {
 export function confirmedCandles(candles: Candle[], timeframe: SupportedTimeframe, now: Date): Candle[] {
   const cutoff = now.getTime();
   return candles.filter((candle) => Date.parse(candle.time) + INTERVAL_MS[timeframe] <= cutoff);
+}
+
+export function clearLiveScanCache(): void {
+  candleCache.clear();
 }
 
 async function mapWithConcurrency<T, R>(items: T[], limit: number, task: (item: T) => Promise<R>): Promise<R[]> {
@@ -49,7 +55,10 @@ export async function runLiveScan(
   if (!targets.length) throw new Error("No tradable assets are currently available.");
 
   const fetchTimeframe = async (asset: Asset, timeframe: SupportedTimeframe) => {
-    const result = await fetchBubingaCandles({
+    const cacheKey = `${asset.id}:${timeframe}`;
+    const cached = options.fetcher ? undefined : candleCache.get(cacheKey);
+    let result = cached && cached.expiresAt > Date.now() ? cached.value : undefined;
+    if (!result) result = await fetchBubingaCandles({
       assetId: asset.id,
       timeframe,
       from: new Date(now.getTime() - HISTORY_MS[timeframe]).toISOString(),
@@ -57,6 +66,9 @@ export async function runLiveScan(
       fetcher: options.fetcher,
       signal: options.signal,
     });
+    if (!options.fetcher && (!cached || cached.value !== result)) {
+      candleCache.set(cacheKey, { expiresAt: Date.now() + CANDLE_CACHE_MS[timeframe], value: result });
+    }
     return { ...result, candles: confirmedCandles(result.candles, timeframe, now) };
   };
 
