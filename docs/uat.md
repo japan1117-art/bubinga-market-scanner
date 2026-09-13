@@ -5,6 +5,7 @@ Updated: 2026-09-13
 ## Scope
 
 Phase 1 MVPの利用者視点テスト。スコアはテクニカル条件への適合度であり、勝率を表さない。
+Bubinga本体はブラウザサービスであり、以下のAndroid項目はMarket Scanner PWA自体をChromeから利用するテストを指す。
 
 ## Verified
 
@@ -26,7 +27,7 @@ Phase 1 MVPの利用者視点テスト。スコアはテクニカル条件への
 - [ ] Confirm loading state prevents duplicate submission
 - [ ] Confirm retry UI after a simulated data failure
 - [ ] Confirm cards remain readable at 360px viewport width
-- [ ] Install from the PWA manifest on an Android device
+- [ ] Install Market Scanner from Chrome on an Android device
 - [ ] Confirm offline shell behavior on an Android device
 
 ## External-data validation pending

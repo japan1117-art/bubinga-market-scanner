@@ -1,5 +1,12 @@
 # Requirements
 
+## Platform premise
+
+- Bubinga本体はブラウザサービスであり、ネイティブアプリ連携を前提にしない。
+- Market ScannerはBubingaとは別のPWAとしてChrome等から利用する。
+- MVPはBubingaへの自動ログイン、自動発注、画面操作の自動化を行わない。
+- データ取得は利用条件を確認できたHTTP APIに限定し、ユーザーID・パスワードをPWAへ保存しない。
+
 ## Product goal
 
 Bubingaの取引可能銘柄をペイアウト順に20件まで取得し、選択方向のMAゲートを通過した銘柄をAO・RSI・Stochasticで採点する。60点以上をスコア順に最大5件表示する。自動発注は行わない。
