@@ -6,7 +6,7 @@
 | 2 | Bubinga銘柄マスター取得 | 正規化、取引可能判定、失敗処理 | Adapter implemented; live contract blocked |
 | 3 | ペイアウト上位20銘柄抽出 | 利用するpayout種別を確定し降順20件 | Ranking implemented; payout source provisional |
 | 4 | Candles取得 | 30M/1H、確定足、欠損検査 | 30M adapter implemented; 1H contract blocked |
-| 5 | MAトレンドフィルター | 1H AND 30Mゲート、単体テスト | Implemented locally |
+| 5 | MAトレンドフィルター | 1H AND 30Mゲート、単体テスト | Completed |
 | 6 | AO計算 | SMA5−SMA34、単体テスト | Implemented locally |
 | 7 | RSI計算 | Wilder RSI14、単体テスト | Implemented locally |
 | 8 | Stochastic計算 | %K14/%D3、単体テスト | Implemented locally |

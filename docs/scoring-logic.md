@@ -4,6 +4,8 @@
 
 1Hと30Mの両方でEMA20が直近3点連続して選択方向へ傾斜し、終値がEMA20の選択方向側、かつEMA20がEMA50の選択方向側にあること。片方でも不成立なら採点しない。
 
+実装ではfastPeriod、slowPeriod、slopePoints、終値位置確認、EMA間位置確認を設定として分離する。既定値は20/50/3/有効/有効。設定値が不正または必要本数不足の場合は通過させない。
+
 ## Score
 
 | Indicator | Weight | Early | Optimal | Late |

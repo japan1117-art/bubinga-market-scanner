@@ -3,11 +3,47 @@ import type { Candle, Candidate, Direction, Phase } from "./types.ts";
 
 const MULTIPLIER: Record<Phase, number> = { early: 0.7, optimal: 1, late: 0.55, none: 0 };
 
-export function maGate(candles: Candle[], direction: Direction): boolean {
-  const closes = candles.map((c) => c.close); const e20 = ema(closes, 20); const e50 = ema(closes, 50);
-  if (e20.length < 3 || !e50.length) return false;
-  const [a, b, c] = e20.slice(-3); const price = closes.at(-1)!;
-  return direction === "BULL" ? c > b && b > a && price > c && c > e50.at(-1)! : c < b && b < a && price < c && c < e50.at(-1)!;
+export interface MaGateConfig {
+  fastPeriod: number;
+  slowPeriod: number;
+  slopePoints: number;
+  requirePriceSide: boolean;
+  requireFastSlowAlignment: boolean;
+}
+
+export const DEFAULT_MA_GATE_CONFIG: Readonly<MaGateConfig> = Object.freeze({
+  fastPeriod: 20,
+  slowPeriod: 50,
+  slopePoints: 3,
+  requirePriceSide: true,
+  requireFastSlowAlignment: true,
+});
+
+export function maGate(candles: Candle[], direction: Direction, overrides: Partial<MaGateConfig> = {}): boolean {
+  const config = { ...DEFAULT_MA_GATE_CONFIG, ...overrides };
+  if (config.fastPeriod < 1 || config.slowPeriod < 1 || config.slopePoints < 2) return false;
+
+  const closes = candles.map((c) => c.close);
+  const fast = ema(closes, config.fastPeriod);
+  const slow = ema(closes, config.slowPeriod);
+  if (fast.length < config.slopePoints || (config.requireFastSlowAlignment && !slow.length)) return false;
+
+  const recent = fast.slice(-config.slopePoints);
+  const slopeAligned = recent.slice(1).every((value, index) =>
+    direction === "BULL" ? value > recent[index] : value < recent[index],
+  );
+  if (!slopeAligned) return false;
+
+  const currentFast = fast.at(-1)!;
+  if (config.requirePriceSide) {
+    const priceAligned = direction === "BULL" ? closes.at(-1)! > currentFast : closes.at(-1)! < currentFast;
+    if (!priceAligned) return false;
+  }
+  if (config.requireFastSlowAlignment) {
+    const averagesAligned = direction === "BULL" ? currentFast > slow.at(-1)! : currentFast < slow.at(-1)!;
+    if (!averagesAligned) return false;
+  }
+  return true;
 }
 
 export function classifyAo(values: number[], direction: Direction): Phase {
