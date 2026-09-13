@@ -23,5 +23,12 @@ export function runDemoScan(direction: Direction): ScanResult {
     direction,
   )).filter((v): v is NonNullable<typeof v> => Boolean(v));
   const candidates = selectTopCandidates(scored);
-  return { scannedAt: new Intl.DateTimeFormat("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(new Date()), source: "demo", candidates };
+  return {
+    scannedAt: new Intl.DateTimeFormat("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(new Date()),
+    source: "demo",
+    candidates,
+    analyzedCount: names.length,
+    targetCount: names.length,
+    warnings: [],
+  };
 }

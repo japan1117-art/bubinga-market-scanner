@@ -5,19 +5,27 @@ import { Activity, ArrowDownRight, ArrowUpRight, Clock3, Flame, ScanSearch } fro
 import type { Direction, ScanResult } from "@/src/lib/types";
 import { runDemoScan } from "@/src/lib/demo-scan";
 import { classifyOpportunity } from "@/src/lib/candidate-selection";
+import { toScanFailure, type ScanFailure } from "@/src/lib/scan-errors";
 
-const EMPTY: ScanResult = { scannedAt: "", source: "demo", candidates: [] };
+const EMPTY: ScanResult = { scannedAt: "", source: "demo", candidates: [], analyzedCount: 0, targetCount: 0, warnings: [] };
 
 export default function Home() {
   const [direction, setDirection] = useState<Direction>("BULL");
   const [result, setResult] = useState<ScanResult>(EMPTY);
   const [loading, setLoading] = useState(false);
+  const [failure, setFailure] = useState<ScanFailure | null>(null);
 
   async function scan() {
     setLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 650));
-    setResult(runDemoScan(direction));
-    setLoading(false);
+    setFailure(null);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 650));
+      setResult(runDemoScan(direction));
+    } catch (error) {
+      setFailure(toScanFailure(error));
+    } finally {
+      setLoading(false);
+    }
   }
 
   const now = result.candidates.filter((item) => classifyOpportunity(item.score) === "NOW");
@@ -39,8 +47,8 @@ export default function Home() {
         <section className="rounded-[28px] border border-white/10 bg-[#0c1a14] p-5 shadow-2xl shadow-black/20 sm:p-6">
           <p className="mb-3 text-sm font-medium text-white/60">分析方向</p>
           <div className="grid grid-cols-2 gap-3" role="group" aria-label="分析方向">
-            <DirectionButton active={direction === "BULL"} onClick={() => setDirection("BULL")} tone="bull" />
-            <DirectionButton active={direction === "BEAR"} onClick={() => setDirection("BEAR")} tone="bear" />
+            <DirectionButton active={direction === "BULL"} disabled={loading} onClick={() => setDirection("BULL")} tone="bull" />
+            <DirectionButton active={direction === "BEAR"} disabled={loading} onClick={() => setDirection("BEAR")} tone="bear" />
           </div>
           <button type="button" onClick={scan} disabled={loading} className="mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#e7ff55] px-5 text-base font-bold text-[#10170c] transition hover:bg-[#f0ff91] active:scale-[0.99] disabled:cursor-wait disabled:opacity-70">
             <ScanSearch size={20} aria-hidden="true" />
@@ -49,12 +57,26 @@ export default function Home() {
           <p className="mt-3 text-center text-xs leading-relaxed text-white/40">MAゲート通過後、AO・RSI・Stochasticの適合度を採点</p>
         </section>
 
+        {failure && (
+          <section role="alert" className="mt-5 rounded-[22px] border border-rose-300/25 bg-rose-400/10 p-5">
+            <h2 className="font-semibold text-rose-200">{failure.title}</h2>
+            <p className="mt-1 text-sm leading-relaxed text-rose-100/65">{failure.message}</p>
+            {failure.retryable && <button type="button" onClick={scan} className="mt-4 rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/15">再試行</button>}
+          </section>
+        )}
+
         {result.scannedAt ? (
           <section className="mt-8" aria-live="polite">
             <div className="mb-5 flex items-end justify-between gap-4">
               <div><p className="text-xs font-medium text-white/40">TOP MATCHES</p><h2 className="mt-1 text-xl font-semibold">候補 {result.candidates.length}銘柄</h2></div>
-              <p className="text-right text-xs text-white/40">デモデータ<br />{result.scannedAt}</p>
+              <p className="text-right text-xs text-white/40">{result.source === "demo" ? "デモデータ" : "Bubinga"}<br />{result.scannedAt}</p>
             </div>
+            <p className="mb-4 text-xs text-white/35">{result.targetCount}銘柄中 {result.analyzedCount}銘柄を分析</p>
+            {result.warnings.length > 0 && (
+              <div className="mb-5 rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4 text-xs leading-relaxed text-amber-100/75">
+                {result.warnings.map((warning) => <p key={warning}>{warning}</p>)}
+              </div>
+            )}
             {result.candidates.length === 0 ? (
               <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center text-sm text-white/55">60点以上の候補はありません</div>
             ) : (
@@ -76,10 +98,10 @@ export default function Home() {
   );
 }
 
-function DirectionButton({ active, onClick, tone }: { active: boolean; onClick: () => void; tone: "bull" | "bear" }) {
+function DirectionButton({ active, disabled, onClick, tone }: { active: boolean; disabled: boolean; onClick: () => void; tone: "bull" | "bear" }) {
   const bull = tone === "bull"; const Icon = bull ? ArrowUpRight : ArrowDownRight;
   return (
-    <button type="button" aria-pressed={active} onClick={onClick} className={`flex min-h-16 items-center justify-center gap-2 rounded-2xl border text-sm font-bold transition ${active ? bull ? "border-emerald-300/60 bg-emerald-400/15 text-emerald-300" : "border-rose-300/60 bg-rose-400/15 text-rose-300" : "border-white/10 bg-white/[0.03] text-white/45 hover:bg-white/[0.06]"}`}>
+    <button type="button" aria-pressed={active} disabled={disabled} onClick={onClick} className={`flex min-h-16 items-center justify-center gap-2 rounded-2xl border text-sm font-bold transition disabled:cursor-wait disabled:opacity-60 ${active ? bull ? "border-emerald-300/60 bg-emerald-400/15 text-emerald-300" : "border-rose-300/60 bg-rose-400/15 text-rose-300" : "border-white/10 bg-white/[0.03] text-white/45 hover:bg-white/[0.06]"}`}>
       <Icon size={19} aria-hidden="true" />{bull ? "BULL" : "BEAR"}
     </button>
   );

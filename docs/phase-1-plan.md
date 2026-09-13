@@ -12,7 +12,7 @@
 | 8 | Stochastic計算 | %K14/%D3、単体テスト | Completed |
 | 9 | BULL/BEARスコアリング | 3フェーズ、30M/5M 50:50、逆方向対称性 | Completed |
 | 10 | 上位5銘柄UI | 60点未満除外、NOW+SOON全体5件 | Completed with demo data |
-| 11 | エラー・ローディング処理 | 再試行可能、部分失敗の明示 | Partial |
+| 11 | エラー・ローディング処理 | 再試行可能、部分失敗の明示 | Completed with demo; live UAT pending |
 | 12 | バックテスト環境 | 50〜100ケース、先読み防止 | Backlog |
 | 13 | Vercel Preview Deploy | Preview URLとbuild確認 | Backlog |
 

@@ -7,4 +7,11 @@ export interface Candidate {
   score5m: number; score30m: number;
   ma1h: boolean; ma30m: boolean; rsi: number; phases: { ao: Phase; rsi: Phase; stochastic: Phase };
 }
-export interface ScanResult { scannedAt: string; source: "demo" | "bubinga"; candidates: Candidate[] }
+export interface ScanResult {
+  scannedAt: string;
+  source: "demo" | "bubinga";
+  candidates: Candidate[];
+  analyzedCount: number;
+  targetCount: number;
+  warnings: string[];
+}
