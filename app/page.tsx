@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Activity, ArrowDownRight, ArrowUpRight, Clock3, Flame, ScanSearch } from "lucide-react";
 import type { Direction, ScanResult } from "@/src/lib/types";
-import { runLiveGsmiScan } from "@/src/lib/live-scan";
+import { runLiveScan } from "@/src/lib/live-scan";
 import { classifyOpportunity } from "@/src/lib/candidate-selection";
 import { toScanFailure, type ScanFailure } from "@/src/lib/scan-errors";
 
@@ -19,7 +19,7 @@ export default function Home() {
     setLoading(true);
     setFailure(null);
     try {
-      setResult(await runLiveGsmiScan(direction));
+      setResult(await runLiveScan(direction));
     } catch (error) {
       setFailure(toScanFailure(error));
     } finally {
@@ -51,7 +51,7 @@ export default function Home() {
           </div>
           <button type="button" onClick={scan} disabled={loading} className="mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#e7ff55] px-5 text-base font-bold text-[#10170c] transition hover:bg-[#f0ff91] active:scale-[0.99] disabled:cursor-wait disabled:opacity-70">
             <ScanSearch size={20} aria-hidden="true" />
-            {loading ? "GSMIを分析中…" : "今の相場を分析"}
+            {loading ? "上位20銘柄を分析中…" : "今の相場を分析"}
           </button>
           <p className="mt-3 text-center text-xs leading-relaxed text-white/40">MAゲート通過後、AO・RSI・Stochasticの適合度を採点</p>
         </section>
@@ -91,7 +91,7 @@ export default function Home() {
             <p className="mt-2 text-xs leading-relaxed text-white/35">最大5銘柄だけをスコア順に表示します</p>
           </section>
         )}
-        <footer className="mt-10 border-t border-white/10 pt-5 text-xs leading-relaxed text-white/35">スコアはテクニカル条件の適合度であり、勝率ではありません。現在は実接続検証としてGSMI 1銘柄だけを分析します。</footer>
+        <footer className="mt-10 border-t border-white/10 pt-5 text-xs leading-relaxed text-white/35">スコアはテクニカル条件の適合度であり、勝率ではありません。Bubingaの取引可能な高ペイアウト上位20銘柄を分析します。</footer>
       </div>
     </main>
   );

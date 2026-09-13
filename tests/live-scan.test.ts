@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { confirmedCandles, runLiveGsmiScan } from "../src/lib/live-scan.ts";
+import { confirmedCandles, runLiveScan } from "../src/lib/live-scan.ts";
 import type { Candle } from "../src/lib/types.ts";
 
 const candle = (time: string, price = 100): Candle => ({ time, open: price, high: price + 1, low: price - 1, close: price + 0.5 });
@@ -13,7 +13,7 @@ test("removes the currently forming candle", () => {
   ], "5m", now).map((item) => item.time), ["2026-09-13T12:05:00Z"]);
 });
 
-test("runs the GSMI vertical slice without hardcoding its id", async () => {
+test("runs a live ranked-asset slice without hardcoding its id", async () => {
   const now = new Date("2026-09-13T12:00:00Z");
   const requested: string[] = [];
   const fetcher: typeof fetch = async (input) => {
@@ -33,7 +33,7 @@ test("runs the GSMI vertical slice without hardcoding its id", async () => {
     });
     return new Response(JSON.stringify({ data }));
   };
-  const result = await runLiveGsmiScan("BULL", { now, fetcher });
+  const result = await runLiveScan("BULL", { now, fetcher });
   assert.equal(result.source, "bubinga");
   assert.equal(result.targetCount, 1);
   assert.ok(requested.some((url) => url.includes("assets/349/candles")));
