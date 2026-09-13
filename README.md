@@ -22,6 +22,7 @@ pnpm build
 - [Scoring logic](docs/scoring-logic.md)
 - [Data research](docs/data-research.md)
 - [Phase 1 plan](docs/phase-1-plan.md)
+- [Backtesting](docs/backtesting.md)
 
 ## Safety and interpretation
 

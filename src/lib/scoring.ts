@@ -127,5 +127,6 @@ export function scoreAsset(
     score: combineTimeframeScores(m30.score, m5.score),
     score5m: Math.round(m5.score), score30m: Math.round(m30.score),
     ma1h, ma30m, rsi: m5.rsi, phases: m5.phases,
+    rsi30m: m30.rsi, phases30m: m30.phases,
   };
 }

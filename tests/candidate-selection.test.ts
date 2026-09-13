@@ -16,6 +16,8 @@ function candidate(id: number, score: number, score5m = score, payout = 90): Can
     ma30m: true,
     rsi: 58,
     phases: { ao: "optimal", rsi: "optimal", stochastic: "optimal" },
+    rsi30m: 58,
+    phases30m: { ao: "optimal", rsi: "optimal", stochastic: "optimal" },
   };
 }
 

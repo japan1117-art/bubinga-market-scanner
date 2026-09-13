@@ -6,6 +6,7 @@ export interface Candidate {
   assetId: number; name: string; payout: number; direction: Direction; score: number;
   score5m: number; score30m: number;
   ma1h: boolean; ma30m: boolean; rsi: number; phases: { ao: Phase; rsi: Phase; stochastic: Phase };
+  rsi30m: number; phases30m: { ao: Phase; rsi: Phase; stochastic: Phase };
 }
 export interface ScanResult {
   scannedAt: string;
