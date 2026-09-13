@@ -3,7 +3,7 @@
 | Issue | Work item | Acceptance summary | Status |
 |---:|---|---|---|
 | 1 | PWA初期構築 | 方向選択、分析、最大5件、manifest、build | In Progress |
-| 2 | Bubinga銘柄マスター取得 | 正規化、取引可能判定、失敗処理 | Blocked: data terms |
+| 2 | Bubinga銘柄マスター取得 | 正規化、取引可能判定、失敗処理 | Adapter implemented; live contract blocked |
 | 3 | ペイアウト上位20銘柄抽出 | 利用するpayout種別を確定し降順20件 | Backlog |
 | 4 | Candles取得 | 30M/1H、確定足、欠損検査 | Backlog |
 | 5 | MAトレンドフィルター | 1H AND 30Mゲート、単体テスト | Implemented locally |

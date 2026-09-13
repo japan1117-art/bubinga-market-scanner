@@ -34,3 +34,17 @@
 ## MVP policy
 
 実データ接続はサーバー側アダプターに隔離する。規約・認証条件を確認するまではデモデータを既定値とし、認証情報は使用しない。
+
+## 2026-09-13 implementation note
+
+- 認証情報を送らず、`credentials: "omit"`で1回だけ取得するアダプターを実装
+- limit=250 / offset=0を固定し、1銘柄ずつの検索を行わない
+- 配列、`data`、`items` envelopeを正規化
+- binary.currentを優先し、存在しない場合だけturbo.currentを利用
+- 0〜1の収益率は百分率へ変換し、既に百分率なら維持
+- 不正レコードと重複IDを除外
+- 10秒timeout、HTTP・network・response形式エラーを区別
+
+### 未検証
+
+実行環境から`api.bubinga.com`へのGETは20秒でタイムアウトした。HTTP応答本文を取得できていないため、認証要否、実際のenvelope、CORS、現在のフィールド型は未確認。これはBubinga側の認証要求ではなく、実行環境の通信制限である可能性も残る。
