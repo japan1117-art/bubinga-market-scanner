@@ -13,13 +13,17 @@ export default function Home() {
   const [direction, setDirection] = useState<Direction>("BULL");
   const [result, setResult] = useState<ScanResult>(EMPTY);
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState({ completed: 0, total: 20 });
   const [failure, setFailure] = useState<ScanFailure | null>(null);
 
   async function scan() {
     setLoading(true);
+    setProgress({ completed: 0, total: 20 });
     setFailure(null);
     try {
-      setResult(await runLiveScan(direction));
+      setResult(await runLiveScan(direction, {
+        onProgress: (completed, total) => setProgress({ completed, total }),
+      }));
     } catch (error) {
       setFailure(toScanFailure(error));
     } finally {
@@ -51,8 +55,13 @@ export default function Home() {
           </div>
           <button type="button" onClick={scan} disabled={loading} className="mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#e7ff55] px-5 text-base font-bold text-[#10170c] transition hover:bg-[#f0ff91] active:scale-[0.99] disabled:cursor-wait disabled:opacity-70">
             <ScanSearch size={20} aria-hidden="true" />
-            {loading ? "上位20銘柄を分析中…" : "今の相場を分析"}
+            {loading ? `${progress.completed}/${progress.total}銘柄を分析中…` : "今の相場を分析"}
           </button>
+          {loading && (
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-valuemin={0} aria-valuemax={progress.total} aria-valuenow={progress.completed}>
+              <div className="h-full rounded-full bg-emerald-400 transition-[width] duration-300" style={{ width: `${progress.total ? progress.completed / progress.total * 100 : 0}%` }} />
+            </div>
+          )}
           <p className="mt-3 text-center text-xs leading-relaxed text-white/40">MAゲート通過後、AO・RSI・Stochasticの適合度を採点</p>
         </section>
 
@@ -68,7 +77,7 @@ export default function Home() {
           <section className="mt-8" aria-live="polite">
             <div className="mb-5 flex items-end justify-between gap-4">
               <div><p className="text-xs font-medium text-white/40">TOP MATCHES</p><h2 className="mt-1 text-xl font-semibold">候補 {result.candidates.length}銘柄</h2></div>
-              <p className="text-right text-xs text-white/40">{result.source === "demo" ? "デモデータ" : "Bubinga"}<br />{result.scannedAt}</p>
+              <p className="text-right text-xs text-white/40">{result.source === "demo" ? "デモデータ" : "Bubinga Live"}<br />{result.scannedAt}</p>
             </div>
             <p className="mb-4 text-xs text-white/35">{result.targetCount}銘柄中 {result.analyzedCount}銘柄を分析</p>
             {result.warnings.length > 0 && (

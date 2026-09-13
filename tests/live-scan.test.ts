@@ -16,6 +16,7 @@ test("removes the currently forming candle", () => {
 test("runs a live ranked-asset slice without hardcoding its id", async () => {
   const now = new Date("2026-09-13T12:00:00Z");
   const requested: string[] = [];
+  const progress: number[] = [];
   const fetcher: typeof fetch = async (input) => {
     const url = new URL(String(input));
     requested.push(url.toString());
@@ -33,9 +34,10 @@ test("runs a live ranked-asset slice without hardcoding its id", async () => {
     });
     return new Response(JSON.stringify({ data }));
   };
-  const result = await runLiveScan("BULL", { now, fetcher });
+  const result = await runLiveScan("BULL", { now, fetcher, onProgress: (completed) => progress.push(completed) });
   assert.equal(result.source, "bubinga");
   assert.equal(result.targetCount, 1);
   assert.ok(requested.some((url) => url.includes("assets/349/candles")));
+  assert.deepEqual(progress, [0, 1]);
   assert.deepEqual(requested.filter((url) => url.includes("candles")).map((url) => new URL(url).searchParams.get("detalization")).sort(), ["1h", "30m", "5m"]);
 });

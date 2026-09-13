@@ -29,14 +29,22 @@ export function clearLiveScanCache(): void {
   candleCache.clear();
 }
 
-async function mapWithConcurrency<T, R>(items: T[], limit: number, task: (item: T) => Promise<R>): Promise<R[]> {
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  task: (item: T) => Promise<R>,
+  onProgress?: (completed: number, total: number) => void,
+): Promise<R[]> {
   const results = new Array<R>(items.length);
   let next = 0;
+  let completed = 0;
   const worker = async () => {
     while (next < items.length) {
       const index = next;
       next += 1;
       results[index] = await task(items[index]);
+      completed += 1;
+      onProgress?.(completed, items.length);
     }
   };
   await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
@@ -47,7 +55,12 @@ type AssetResult = { candidate: Candidate | null; analyzed: boolean; warnings: s
 
 export async function runLiveScan(
   direction: Direction,
-  options: { now?: Date; fetcher?: typeof fetch; signal?: AbortSignal } = {},
+  options: {
+    now?: Date;
+    fetcher?: typeof fetch;
+    signal?: AbortSignal;
+    onProgress?: (completed: number, total: number) => void;
+  } = {},
 ): Promise<ScanResult> {
   const now = options.now ?? new Date();
   const assets = await fetchBubingaAssets({ fetcher: options.fetcher, signal: options.signal });
@@ -72,6 +85,7 @@ export async function runLiveScan(
     return { ...result, candles: confirmedCandles(result.candles, timeframe, now) };
   };
 
+  options.onProgress?.(0, targets.length);
   const evaluated = await mapWithConcurrency(targets, CONCURRENCY, async (asset): Promise<AssetResult> => {
     try {
       const [m30, h1] = await Promise.all([fetchTimeframe(asset, "30m"), fetchTimeframe(asset, "1h")]);
@@ -93,7 +107,7 @@ export async function runLiveScan(
     } catch {
       return { candidate: null, analyzed: false, warnings: [`${asset.name}: データ取得に失敗`] };
     }
-  });
+  }, options.onProgress);
 
   return {
     scannedAt: new Intl.DateTimeFormat("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(now),
