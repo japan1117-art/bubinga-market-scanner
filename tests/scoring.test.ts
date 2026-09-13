@@ -30,6 +30,11 @@ test("combines 30m and 5m scores at equal weights", () => {
   assert.equal(combineTimeframeScores(70, 90), 80);
   assert.equal(combineTimeframeScores(100, 59), 80);
 });
+test("equal weighting is order-independent and rounds only the final score", () => {
+  assert.equal(combineTimeframeScores(70.5, 89.5), 80);
+  assert.equal(combineTimeframeScores(89.5, 70.5), 80);
+  assert.equal(combineTimeframeScores(79, 80), 80);
+});
 test("RSI phase boundaries", () => { assert.equal(classifyRsi([48, 58], "BULL"), "optimal"); assert.equal(classifyRsi([61, 55], "BEAR"), "early"); });
 test("AO bull early below zero and improving", () => assert.equal(classifyAo([-0.4, -0.3, -0.2, -0.1], "BULL"), "early"));
 test("Stochastic bull optimal after cross", () => assert.equal(classifyStochastic([20, 35], [25, 30], "BULL"), "optimal"));

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Activity, ArrowDownRight, ArrowUpRight, Clock3, Flame, ScanSearch } from "lucide-react";
 import type { Direction, ScanResult } from "@/src/lib/types";
 import { runDemoScan } from "@/src/lib/demo-scan";
+import { classifyOpportunity } from "@/src/lib/candidate-selection";
 
 const EMPTY: ScanResult = { scannedAt: "", source: "demo", candidates: [] };
 
@@ -19,8 +20,8 @@ export default function Home() {
     setLoading(false);
   }
 
-  const now = result.candidates.filter((item) => item.score >= 80);
-  const soon = result.candidates.filter((item) => item.score < 80);
+  const now = result.candidates.filter((item) => classifyOpportunity(item.score) === "NOW");
+  const soon = result.candidates.filter((item) => classifyOpportunity(item.score) === "SOON");
 
   return (
     <main className="min-h-screen bg-[#07110d] text-[#f5f8f6]">
