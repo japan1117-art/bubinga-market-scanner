@@ -113,7 +113,7 @@ export async function fetchBubingaCandles(options: {
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10_000);
+  const timeout = setTimeout(() => controller.abort(), 20_000);
   const onAbort = () => controller.abort();
   options.signal?.addEventListener("abort", onAbort, { once: true });
   const url = new URL(`/api/v1/assets/${options.assetId}/candles`, API_ORIGIN);

@@ -69,7 +69,7 @@ export function normalizeAssetsResponse(payload: unknown): Asset[] {
 
 export async function fetchBubingaAssets(options: { signal?: AbortSignal; fetcher?: typeof fetch } = {}): Promise<Asset[]> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10_000);
+  const timeout = setTimeout(() => controller.abort(), 20_000);
   const onAbort = () => controller.abort();
   options.signal?.addEventListener("abort", onAbort, { once: true });
 
