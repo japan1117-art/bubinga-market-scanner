@@ -149,6 +149,11 @@ function CandidateGroup({ icon, title, items, tone }: { icon: React.ReactNode; t
 function symbol(phase: Phase) { return phase === "optimal" ? "◎" : phase === "early" ? "↗" : phase === "late" ? "△" : "×"; }
 function formatPoint(value: number) { return Number.isInteger(value) ? String(value) : value.toFixed(1); }
 function BreakdownRow({ label, value }: { label: string; value: IndicatorBreakdown }) {
-  return <><strong className="text-white/55">{label}</strong><span className="font-bold text-white/80">{symbol(value.phases.ao)} {formatPoint(value.ao)}</span><span className="font-bold text-white/80">{value.rsiValue.toFixed(0)} / {formatPoint(value.rsi)}</span><span className="font-bold text-white/80">{symbol(value.phases.stochastic)} {formatPoint(value.stochastic)}</span></>;
+  return <>
+    <strong className="self-center text-white/55">{label}</strong>
+    <span className="self-center whitespace-nowrap font-bold text-white/80">{symbol(value.phases.ao)} {formatPoint(value.ao)} / 35点</span>
+    <span className="font-bold leading-tight text-white/80"><span className="whitespace-nowrap">{formatPoint(value.rsi)} / 30点</span><small className="mt-0.5 block whitespace-nowrap text-[10px] font-medium text-white/40">（RSI {value.rsiValue.toFixed(0)}）</small></span>
+    <span className="self-center whitespace-nowrap font-bold text-white/80">{symbol(value.phases.stochastic)} {formatPoint(value.stochastic)} / 35点</span>
+  </>;
 }
 function Metric({ label, value }: { label: string; value: string }) { return <div><p className="text-white/35">{label}</p><p className="mt-1 text-sm font-bold text-white/80">{value}</p></div>; }
