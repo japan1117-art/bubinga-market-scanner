@@ -13,6 +13,8 @@ export function selectTopCandidates(candidates: Candidate[], limit = 5): Candida
     .filter((candidate) => classifyOpportunity(candidate.score) !== "HIDDEN")
     .toSorted((left, right) =>
       right.score - left.score ||
+      right.score1h - left.score1h ||
+      right.score30m - left.score30m ||
       right.score5m - left.score5m ||
       right.payout - left.payout ||
       left.name.localeCompare(right.name, "ja"),

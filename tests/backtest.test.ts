@@ -25,10 +25,14 @@ test("evaluates bull and bear outcomes symmetrically", () => {
 });
 
 const candidate: Candidate = {
-  assetId: 1, name: "GSMI", payout: 90, direction: "BULL", score: 80, score5m: 80, score30m: 80,
+  assetId: 1, name: "GSMI", payout: 90, direction: "BULL", score: 80, score5m: 80, score30m: 80, score1h: 80,
   ma1h: true, ma30m: true, rsi: 58, rsi30m: 58,
   phases: { ao: "optimal", rsi: "optimal", stochastic: "optimal" },
   phases30m: { ao: "optimal", rsi: "optimal", stochastic: "optimal" },
+  rsi1h: 58, phases1h: { ao: "optimal", rsi: "optimal", stochastic: "optimal" },
+  breakdown5m: { ao: 35, rsi: 30, stochastic: 35, rsiValue: 58, phases: { ao: "optimal", rsi: "optimal", stochastic: "optimal" } },
+  breakdown30m: { ao: 35, rsi: 30, stochastic: 35, rsiValue: 58, phases: { ao: "optimal", rsi: "optimal", stochastic: "optimal" } },
+  breakdown1h: { ao: 35, rsi: 30, stochastic: 35, rsiValue: 58, phases: { ao: "optimal", rsi: "optimal", stochastic: "optimal" } },
 };
 
 function signal(opportunity: "NOW" | "SOON", outcome: BacktestSignal["outcome"], pnlPerUnit: number, becameNowWithinWindow = false): BacktestSignal {

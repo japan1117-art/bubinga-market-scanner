@@ -12,12 +12,18 @@ function candidate(id: number, score: number, score5m = score, payout = 90): Can
     score,
     score5m,
     score30m: score,
+    score1h: score,
     ma1h: true,
     ma30m: true,
     rsi: 58,
     phases: { ao: "optimal", rsi: "optimal", stochastic: "optimal" },
     rsi30m: 58,
     phases30m: { ao: "optimal", rsi: "optimal", stochastic: "optimal" },
+    rsi1h: 58,
+    phases1h: { ao: "optimal", rsi: "optimal", stochastic: "optimal" },
+    breakdown5m: { ao: 35, rsi: 30, stochastic: 35, rsiValue: 58, phases: { ao: "optimal", rsi: "optimal", stochastic: "optimal" } },
+    breakdown30m: { ao: 35, rsi: 30, stochastic: 35, rsiValue: 58, phases: { ao: "optimal", rsi: "optimal", stochastic: "optimal" } },
+    breakdown1h: { ao: 35, rsi: 30, stochastic: 35, rsiValue: 58, phases: { ao: "optimal", rsi: "optimal", stochastic: "optimal" } },
   };
 }
 

@@ -51,9 +51,12 @@ Bubingaの取引可能銘柄をペイアウト順に20件まで取得し、選�
 ## Multi-timeframe scoring v0.2
 
 - 1Hと30MのMAは方向ゲート
+- 1HのAO/RSI/Stochasticを100点で採点し、良好フェーズは直近4本まで保持する
 - 30MのAO/RSI/Stochasticを100点で採点
 - 5MのAO/RSI/Stochasticを100点で採点
-- 最終点は30M 50% + 5M 50%
+- 最終点は1H 60% + 30M 30% + 5M 10%
+- 5Mまたは30MでAOの2本連続逆行とStochasticの直近逆クロスが同時成立した場合、NOWには分類しない
+- 1Hと30Mの両方で同じ強い逆転警戒が成立した場合は候補から除外する
 - 80〜100をNOW、60〜79をSOON、59以下を非表示
 
 ## Failure handling

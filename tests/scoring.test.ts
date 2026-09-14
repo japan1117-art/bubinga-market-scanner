@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { ema, rsi, stochastic } from "../src/lib/indicators.ts";
-import { classifyAo, classifyRsi, classifyStochastic, combineTimeframeScores, DEFAULT_MA_GATE_CONFIG, maGate } from "../src/lib/scoring.ts";
+import { classifyAo, classifyRsi, classifyStochastic, combineTimeframeScores, DEFAULT_MA_GATE_CONFIG, maGate, scoreIndicators } from "../src/lib/scoring.ts";
 import type { Candle } from "../src/lib/types.ts";
 
 function trend(sign = 1): Candle[] {
@@ -25,15 +25,17 @@ test("default MA calibration remains EMA20/EMA50 with three slope points", () =>
   assert.deepEqual(DEFAULT_MA_GATE_CONFIG, { fastPeriod: 20, slowPeriod: 50, slopePoints: 3, requirePriceSide: true, requireFastSlowAlignment: true });
 });
 test("All early phases total 70 by specification", () => assert.equal(Math.round(35 * 0.7 + 30 * 0.7 + 35 * 0.7), 70));
-test("combines 30m and 5m scores at equal weights", () => {
-  assert.equal(combineTimeframeScores(90, 70), 80);
-  assert.equal(combineTimeframeScores(70, 90), 80);
-  assert.equal(combineTimeframeScores(100, 59), 80);
+test("combines 1h, 30m and 5m scores at 60/30/10 weights", () => {
+  assert.equal(combineTimeframeScores(90, 70, 50), 80);
+  assert.equal(combineTimeframeScores(100, 100, 0), 90);
+  assert.equal(combineTimeframeScores(0, 100, 100), 40);
 });
-test("equal weighting is order-independent and rounds only the final score", () => {
-  assert.equal(combineTimeframeScores(70.5, 89.5), 80);
-  assert.equal(combineTimeframeScores(89.5, 70.5), 80);
-  assert.equal(combineTimeframeScores(79, 80), 80);
+test("timeframe weighting rounds only the final score", () => {
+  assert.equal(combineTimeframeScores(79.5, 80.5, 60.5), 78);
+});
+test("indicator scoring exposes exact component points", () => {
+  const scored = scoreIndicators(trend(1), "BULL");
+  assert.equal(scored.score, scored.points.ao + scored.points.rsi + scored.points.stochastic);
 });
 test("RSI phase boundaries", () => { assert.equal(classifyRsi([48, 58], "BULL"), "optimal"); assert.equal(classifyRsi([61, 55], "BEAR"), "early"); });
 test("AO bull early below zero and improving", () => assert.equal(classifyAo([-0.4, -0.3, -0.2, -0.1], "BULL"), "early"));

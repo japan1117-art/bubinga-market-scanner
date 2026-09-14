@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Activity, ArrowDownRight, ArrowUpRight, Clock3, Flame, ScanSearch } from "lucide-react";
-import type { Direction, ScanResult } from "@/src/lib/types";
+import type { Direction, IndicatorBreakdown, Phase, ScanResult } from "@/src/lib/types";
 import { runLiveScan } from "@/src/lib/live-scan";
 import { classifyOpportunity } from "@/src/lib/candidate-selection";
 import { toScanFailure, type ScanFailure } from "@/src/lib/scan-errors";
@@ -124,15 +124,20 @@ function CandidateGroup({ icon, title, items, tone }: { icon: React.ReactNode; t
         {items.map((item, index) => (
           <article key={item.assetId} className="rounded-[22px] border border-white/10 bg-[#0c1a14] p-5">
             <div className="flex items-start justify-between gap-4">
-              <div className="flex gap-3"><span className="grid h-8 w-8 place-items-center rounded-full bg-white/[0.06] text-xs font-semibold text-white/45">{index + 1}</span><div><h4 className="font-semibold tracking-tight">{item.name}</h4><p className="mt-1 text-xs text-white/40">Payout {item.payout}% · 30M {item.score30m} / 5M {item.score5m}</p></div></div>
+              <div className="flex gap-3"><span className="grid h-8 w-8 place-items-center rounded-full bg-white/[0.06] text-xs font-semibold text-white/45">{index + 1}</span><div><h4 className="font-semibold tracking-tight">{item.name}</h4><p className="mt-1 text-xs text-white/40">Payout {item.payout}% · 1H {item.score1h} / 30M {item.score30m} / 5M {item.score5m}</p></div></div>
               <div className="text-right"><strong className="text-3xl tracking-[-0.05em]">{item.score}</strong><span className="ml-1 text-xs text-white/35">点</span></div>
             </div>
-            <div className="mt-4 grid grid-cols-5 gap-2 border-t border-white/10 pt-4 text-center text-[11px]">
-              <Metric label="1H MA" value={item.direction === "BULL" ? "↑" : "↓"} />
-              <Metric label="30M MA" value={item.direction === "BULL" ? "↑" : "↓"} />
-              <Metric label="5M AO" value={symbol(item.phases.ao)} />
-              <Metric label="5M RSI" value={item.rsi.toFixed(0)} />
-              <Metric label="5M Stoch" value={symbol(item.phases.stochastic)} />
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <div className="mb-3 grid grid-cols-2 gap-2 text-center text-[11px]">
+                <Metric label="1H MA" value={`${item.direction === "BULL" ? "↑" : "↓"} 通過`} />
+                <Metric label="30M MA" value={`${item.direction === "BULL" ? "↑" : "↓"} 通過`} />
+              </div>
+              <div className="grid grid-cols-[3rem_repeat(3,1fr)] gap-x-2 gap-y-2 text-center text-[11px]">
+                <span /><span className="text-white/35">AO</span><span className="text-white/35">RSI</span><span className="text-white/35">Stoch</span>
+                <BreakdownRow label="1H" value={item.breakdown1h} />
+                <BreakdownRow label="30M" value={item.breakdown30m} />
+                <BreakdownRow label="5M" value={item.breakdown5m} />
+              </div>
             </div>
           </article>
         ))}
@@ -141,5 +146,9 @@ function CandidateGroup({ icon, title, items, tone }: { icon: React.ReactNode; t
   );
 }
 
-function symbol(phase: string) { return phase === "optimal" ? "◎" : phase === "early" ? "↗" : "△"; }
+function symbol(phase: Phase) { return phase === "optimal" ? "◎" : phase === "early" ? "↗" : phase === "late" ? "△" : "×"; }
+function formatPoint(value: number) { return Number.isInteger(value) ? String(value) : value.toFixed(1); }
+function BreakdownRow({ label, value }: { label: string; value: IndicatorBreakdown }) {
+  return <><strong className="text-white/55">{label}</strong><span className="font-bold text-white/80">{symbol(value.phases.ao)} {formatPoint(value.ao)}</span><span className="font-bold text-white/80">{value.rsiValue.toFixed(0)} / {formatPoint(value.rsi)}</span><span className="font-bold text-white/80">{symbol(value.phases.stochastic)} {formatPoint(value.stochastic)}</span></>;
+}
 function Metric({ label, value }: { label: string; value: string }) { return <div><p className="text-white/35">{label}</p><p className="mt-1 text-sm font-bold text-white/80">{value}</p></div>; }
