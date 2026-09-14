@@ -41,3 +41,5 @@ Bubinga本体はブラウザサービスであり、以下のAndroid項目はMar
 ## Release gate
 
 Production deployment remains blocked until interactive UAT passes and the live-data access method is confirmed acceptable. No Bubinga user ID or password is used in the current MVP.
+
+The official client-agreement page reviewed on 2026-09-14 limits website information to personal and non-commercial use. A public, unauthenticated Production release is therefore blocked pending written clarification from Bubinga or an access-controlled personal deployment design.

@@ -32,7 +32,16 @@
 
 ## MVP policy
 
-実データ接続はサーバー側アダプターに隔離する。規約・認証条件を確認するまではデモデータを既定値とし、認証情報は使用しない。
+実データ接続は専用アダプターに隔離し、ブラウザからCookie・Authorizationを送らずに読み取る。認証情報は保存・使用せず、自動発注も行わない。公開範囲は公式契約の確認結果に従って制限する。
+
+## Official client-agreement review — 2026-09-14
+
+- Official page reviewed: `https://bubinga.com/ja/main/client-agreement`
+- The footer limits use of information published on the website to personal and non-commercial purposes and describes the permission as limited and non-exclusive.
+- The agreement also states that website access and services are provided subject to strict compliance with the agreement and may be changed without individual notice.
+- The current scanner is intended only as the user's personal decision-support tool. It does not authenticate, place orders, or store account credentials.
+- A publicly accessible Production PWA could be interpreted as redistributing or enabling third-party use of Bubinga information. Production therefore remains blocked until Bubinga provides written clarification or the application is access-controlled for personal use.
+- Technical accessibility, CORS headers, and public caching do not override these contractual restrictions.
 
 ## 2026-09-13 implementation note
 
