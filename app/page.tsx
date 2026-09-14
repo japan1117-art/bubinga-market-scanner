@@ -100,7 +100,7 @@ export default function Home() {
             <p className="mt-2 text-xs leading-relaxed text-white/35">最大5銘柄だけをスコア順に表示します</p>
           </section>
         )}
-        <footer className="mt-10 border-t border-white/10 pt-5 text-xs leading-relaxed text-white/35">スコアはテクニカル条件の適合度であり、勝率ではありません。Bubingaの取引可能な高ペイアウト上位20銘柄を分析します。</footer>
+        <footer className="mt-10 border-t border-white/10 pt-5 text-xs leading-relaxed text-white/35">個人利用専用。スコアはテクニカル条件の適合度であり、勝率ではありません。Bubingaの取引可能な高ペイアウト上位20銘柄を分析します。自動発注は行いません。</footer>
       </div>
     </main>
   );

@@ -1,5 +1,7 @@
 # Bubinga Market Scanner
 
+> Personal-use decision-support tool. Do not redistribute, sell, or use commercially. This application does not place orders or store Bubinga credentials.
+
 Bubingaのペイアウト上位20銘柄から、選択方向のMAゲートとAO・RSI・Stochastic適合度により、確認対象を最大5銘柄へ絞るPWAです。自動発注は行いません。
 
 ## Current status

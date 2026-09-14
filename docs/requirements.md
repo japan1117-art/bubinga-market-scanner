@@ -6,6 +6,7 @@
 - Market ScannerはBubingaとは別のPWAとしてChrome等から利用する。
 - MVPはBubingaへの自動ログイン、自動発注、画面操作の自動化を行わない。
 - データ取得は利用条件を確認できたHTTP APIに限定し、ユーザーID・パスワードをPWAへ保存しない。
+- 利用者本人の個人利用に限定し、URL・取得データの第三者共有、販売、商用提供を行わない。
 
 ## Product goal
 
