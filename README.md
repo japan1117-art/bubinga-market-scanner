@@ -8,8 +8,9 @@ Bubingaのペイアウト上位20銘柄から、選択方向のMAゲートとAO�
 
 - Issue #1相当のスマホ向けPWA画面を実装
 - EMA、AO、RSI、Stochastic、BULL/BEARスコアリングを純粋関数として実装
-- 現在はデモOHLCで動作
-- Bubinga実データ接続、バックテスト、Vercel公開は未実施
+- Bubingaの未認証HTTP APIからassetsと5m/30m/1h candlesを取得するMVPを実装
+- 30Mと5Mを50%ずつ採点し、1H/30MのMAゲート後に最大5銘柄を表示
+- PWAとVercel Previewを実装済み。Production公開はリリース作業中
 
 ## Commands
 
@@ -28,4 +29,4 @@ pnpm build
 
 ## Safety and interpretation
 
-表示スコアはテクニカル条件の適合度であり、勝率や利益を保証しません。実データ取得はBubingaの規約・認証・商用利用条件を確認したうえで有効化します。
+表示スコアはテクニカル条件の適合度であり、勝率や利益を保証しません。公開URLは検索対象外に設定しますが、認証はないためURLを知る人はアクセスできます。個人・非商用利用に限定し、URLや取得データを第三者へ共有しません。

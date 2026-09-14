@@ -40,7 +40,7 @@
 - The footer limits use of information published on the website to personal and non-commercial purposes and describes the permission as limited and non-exclusive.
 - The agreement also states that website access and services are provided subject to strict compliance with the agreement and may be changed without individual notice.
 - The current scanner is intended only as the user's personal decision-support tool. It does not authenticate, place orders, or store account credentials.
-- A publicly accessible Production PWA could be interpreted as redistributing or enabling third-party use of Bubinga information. Production therefore remains blocked until Bubinga provides written clarification or the application is access-controlled for personal use.
+- A publicly reachable, unauthenticated URL can be interpreted as enabling third-party use even when it is marked `noindex`. The Production release is therefore recorded as a user-accepted residual risk for personal use, not as confirmation of Bubinga's API redistribution permission.
 - Technical accessibility, CORS headers, and public caching do not override these contractual restrictions.
 
 ## 2026-09-13 implementation note
