@@ -1,4 +1,5 @@
 import { ao, ema, rsi, stochastic } from "./indicators.ts";
+import { assessMarketNoise } from "./market-noise.ts";
 import type { Candle, Candidate, Direction, IndicatorBreakdown, Phase } from "./types.ts";
 
 const MULTIPLIER: Record<Phase, number> = { early: 0.7, optimal: 1, late: 0.55, none: 0 };
@@ -186,5 +187,7 @@ export function scoreAsset(
     rsi30m: m30.rsi, phases30m: m30.phases,
     rsi1h: h1.rsi, phases1h: h1.phases,
     breakdown5m: breakdown(m5), breakdown30m: breakdown(m30), breakdown1h: breakdown(h1),
+    noiseShort: assessMarketNoise(candles5m, direction, 6),
+    noiseMedium: assessMarketNoise(candles5m, direction, 12),
   };
 }

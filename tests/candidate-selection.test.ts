@@ -24,6 +24,8 @@ function candidate(id: number, score: number, score5m = score, payout = 90): Can
     breakdown5m: { ao: 35, rsi: 30, stochastic: 35, rsiValue: 58, phases: { ao: "optimal", rsi: "optimal", stochastic: "optimal" } },
     breakdown30m: { ao: 35, rsi: 30, stochastic: 35, rsiValue: 58, phases: { ao: "optimal", rsi: "optimal", stochastic: "optimal" } },
     breakdown1h: { ao: 35, rsi: 30, stochastic: 35, rsiValue: 58, phases: { ao: "optimal", rsi: "optimal", stochastic: "optimal" } },
+    noiseShort: { score: 20, reversals: 1, efficiency: 80, failedMoves: 0, rangePercent: 0.5, bars: 6, sufficient: true },
+    noiseMedium: { score: 30, reversals: 2, efficiency: 70, failedMoves: 1, rangePercent: 0.8, bars: 12, sufficient: true },
   };
 }
 

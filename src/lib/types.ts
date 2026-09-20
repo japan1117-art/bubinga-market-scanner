@@ -7,6 +7,10 @@ export interface IndicatorBreakdown {
   phases: { ao: Phase; rsi: Phase; stochastic: Phase };
   rsiValue: number;
 }
+export interface NoiseAssessment {
+  score: number; reversals: number; efficiency: number; failedMoves: number;
+  rangePercent: number; bars: 6 | 12; sufficient: boolean;
+}
 export interface Candidate {
   assetId: number; name: string; payout: number; direction: Direction; score: number;
   score5m: number; score30m: number; score1h: number;
@@ -14,6 +18,7 @@ export interface Candidate {
   rsi30m: number; phases30m: { ao: Phase; rsi: Phase; stochastic: Phase };
   rsi1h: number; phases1h: { ao: Phase; rsi: Phase; stochastic: Phase };
   breakdown5m: IndicatorBreakdown; breakdown30m: IndicatorBreakdown; breakdown1h: IndicatorBreakdown;
+  noiseShort: NoiseAssessment; noiseMedium: NoiseAssessment;
 }
 export interface ScanResult {
   scannedAt: string;

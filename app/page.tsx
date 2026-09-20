@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Activity, ArrowDownRight, ArrowUpRight, Clock3, Flame, ScanSearch } from "lucide-react";
-import type { Direction, IndicatorBreakdown, Phase, ScanResult } from "@/src/lib/types";
+import type { Direction, IndicatorBreakdown, NoiseAssessment, Phase, ScanResult } from "@/src/lib/types";
 import { runLiveScan } from "@/src/lib/live-scan";
 import { classifyOpportunity } from "@/src/lib/candidate-selection";
 import { toScanFailure, type ScanFailure } from "@/src/lib/scan-errors";
@@ -138,6 +138,11 @@ function CandidateGroup({ icon, title, items, tone }: { icon: React.ReactNode; t
                 <BreakdownRow label="30M" value={item.breakdown30m} />
                 <BreakdownRow label="5M" value={item.breakdown5m} />
               </div>
+              <div className="mt-4 grid grid-cols-2 gap-2 border-t border-white/10 pt-4">
+                <NoiseMetric label="短期ノイズ" window="直近30分" value={item.noiseShort} />
+                <NoiseMetric label="中期ノイズ" window="直近1時間" value={item.noiseMedium} />
+              </div>
+              <p className="mt-2 text-center text-[10px] text-white/30">ノイズ値は低いほど安定（現在は参考表示・スコア対象外）</p>
             </div>
           </article>
         ))}
@@ -157,3 +162,25 @@ function BreakdownRow({ label, value }: { label: string; value: IndicatorBreakdo
   </>;
 }
 function Metric({ label, value }: { label: string; value: string }) { return <div><p className="text-white/35">{label}</p><p className="mt-1 text-sm font-bold text-white/80">{value}</p></div>; }
+
+function noiseTone(score: number) {
+  if (score >= 70) return { label: "乱高下", className: "text-rose-300 bg-rose-400/10 border-rose-300/20" };
+  if (score >= 50) return { label: "不安定", className: "text-orange-300 bg-orange-400/10 border-orange-300/20" };
+  if (score >= 30) return { label: "通常", className: "text-amber-200 bg-amber-300/10 border-amber-200/20" };
+  return { label: "安定", className: "text-emerald-300 bg-emerald-400/10 border-emerald-300/20" };
+}
+
+function NoiseMetric({ label, window, value }: { label: string; window: string; value: NoiseAssessment }) {
+  if (!value.sufficient) return <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3"><p className="text-[10px] text-white/35">{label} · {window}</p><p className="mt-2 text-xs font-semibold text-white/50">データ不足</p></div>;
+  const tone = noiseTone(value.score);
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3">
+      <p className="text-[10px] text-white/35">{label} · {window}</p>
+      <div className="mt-1.5 flex items-center justify-between gap-1">
+        <strong className="text-xl tracking-[-0.04em] text-white/85">{value.score}<span className="ml-0.5 text-[10px] font-medium text-white/35">/100</span></strong>
+        <span className={`rounded-full border px-1.5 py-0.5 text-[9px] font-bold ${tone.className}`}>{tone.label}</span>
+      </div>
+      <p className="mt-1.5 text-[9px] leading-relaxed text-white/35">反転 {value.reversals}回 · 効率 {value.efficiency}%<br />伸び失敗 {value.failedMoves}回 · 値幅 {value.rangePercent.toFixed(2)}%</p>
+    </div>
+  );
+}
