@@ -98,6 +98,10 @@ export interface IndicatorScore {
   points: { ao: number; rsi: number; stochastic: number };
 }
 
+export interface ScoreAssetOptions {
+  requireMaGate?: boolean;
+}
+
 function rawIndicatorPhases(candles: Candle[], direction: Direction) {
   const aoValues = ao(candles);
   const rsiValues = rsi(candles.map((c) => c.close));
@@ -170,9 +174,10 @@ export function scoreAsset(
   candles30m: Candle[],
   candles1h: Candle[],
   direction: Direction,
+  options: ScoreAssetOptions = {},
 ): Candidate | null {
   const ma30m = maGate(candles30m, direction); const ma1h = maGate(candles1h, direction);
-  if (!ma30m || !ma1h) return null;
+  if ((options.requireMaGate ?? true) && (!ma30m || !ma1h)) return null;
   const adverse1h = hasStrongAdverseReversal(candles1h, direction);
   const adverse30m = hasStrongAdverseReversal(candles30m, direction);
   if (adverse1h && adverse30m) return null;

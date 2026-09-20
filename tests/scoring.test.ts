@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { ema, rsi, stochastic } from "../src/lib/indicators.ts";
-import { classifyAo, classifyRsi, classifyStochastic, combineTimeframeScores, DEFAULT_MA_GATE_CONFIG, EARLY_MULTIPLIER, EARLY_TIMING_ADVANCE, maGate, scoreIndicators } from "../src/lib/scoring.ts";
+import { classifyAo, classifyRsi, classifyStochastic, combineTimeframeScores, DEFAULT_MA_GATE_CONFIG, EARLY_MULTIPLIER, EARLY_TIMING_ADVANCE, maGate, scoreAsset, scoreIndicators } from "../src/lib/scoring.ts";
 import type { Candle } from "../src/lib/types.ts";
 
 function trend(sign = 1): Candle[] {
@@ -23,6 +23,15 @@ test("MA gate can disable the EMA50 confirmation for calibration", () => {
 });
 test("default MA calibration remains EMA20/EMA50 with three slope points", () => {
   assert.deepEqual(DEFAULT_MA_GATE_CONFIG, { fastPeriod: 20, slowPeriod: 50, slopePoints: 3, requirePriceSide: true, requireFastSlowAlignment: true });
+});
+test("MA gate bypass is explicit and reserved for comparison backtests", () => {
+  const falling = trend(-1);
+  const asset = { id: 1, name: "TEST", payout: 90 };
+  assert.equal(scoreAsset(asset, falling, falling, falling, "BULL"), null);
+  const comparison = scoreAsset(asset, falling, falling, falling, "BULL", { requireMaGate: false });
+  assert.ok(comparison);
+  assert.equal(comparison.ma1h, false);
+  assert.equal(comparison.ma30m, false);
 });
 test("early scoring advances thirty percent of the remaining distance to optimal", () => {
   assert.equal(EARLY_TIMING_ADVANCE, 0.3);

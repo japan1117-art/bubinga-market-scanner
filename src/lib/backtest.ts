@@ -1,6 +1,6 @@
 import { classifyOpportunity, type Opportunity } from "./candidate-selection.ts";
 import { scoreAsset } from "./scoring.ts";
-import type { Asset, Candle, Candidate, Direction } from "./types.ts";
+import type { Asset, Candle, Candidate, Direction, Phase } from "./types.ts";
 
 export interface BacktestSeries {
   asset: Asset;
@@ -13,6 +13,7 @@ export interface BacktestConfig {
   expiryMinutes: number;
   soonWindowMinutes?: number;
   payoutRatio?: number;
+  requireMaGate?: boolean;
 }
 
 export type TradeOutcome = "WIN" | "LOSS" | "PUSH" | "NO_EXIT";
@@ -47,7 +48,14 @@ export interface BacktestSegments {
   shortNoise: Record<NoiseBand, BacktestSegmentStats>;
   mediumNoise: Record<NoiseBand, BacktestSegmentStats>;
   earlyPresence: Record<"WITH_EARLY" | "WITHOUT_EARLY", BacktestSegmentStats>;
+  maAlignment: Record<"BOTH_ALIGNED" | "NOT_ALIGNED", BacktestSegmentStats>;
+  payout: Record<PayoutBand, BacktestSegmentStats>;
+  indicatorPhase: Record<Timeframe, Record<Indicator, Record<Phase, BacktestSegmentStats>>>;
 }
+
+export type Timeframe = "1H" | "30M" | "5M";
+export type Indicator = "AO" | "RSI" | "STOCHASTIC";
+export type PayoutBand = "BELOW_80" | "80_TO_89" | "90_PLUS" | "UNKNOWN";
 
 export interface BacktestSummary {
   totalSignals: number;
@@ -122,6 +130,35 @@ function hasEarlyPhase(signal: BacktestSignal): boolean {
     .some((breakdown) => Object.values(breakdown.phases).includes("early"));
 }
 
+function payoutBand(payout: number): PayoutBand {
+  if (!Number.isFinite(payout)) return "UNKNOWN";
+  if (payout >= 90) return "90_PLUS";
+  if (payout >= 80) return "80_TO_89";
+  return "BELOW_80";
+}
+
+function indicatorPhaseSegments(signals: BacktestSignal[]): BacktestSegments["indicatorPhase"] {
+  const phases = ["early", "optimal", "late", "none"] as const;
+  const breakdown = (signal: BacktestSignal, timeframe: Timeframe) => {
+    if (timeframe === "1H") return signal.candidate.breakdown1h;
+    if (timeframe === "30M") return signal.candidate.breakdown30m;
+    return signal.candidate.breakdown5m;
+  };
+  const select = (signal: BacktestSignal, timeframe: Timeframe, indicator: Indicator): Phase => {
+    const selected = breakdown(signal, timeframe).phases;
+    if (indicator === "AO") return selected.ao;
+    if (indicator === "RSI") return selected.rsi;
+    return selected.stochastic;
+  };
+  return Object.fromEntries((["1H", "30M", "5M"] as const).map((timeframe) => [
+    timeframe,
+    Object.fromEntries((["AO", "RSI", "STOCHASTIC"] as const).map((indicator) => [
+      indicator,
+      groupSegments(signals, phases, (signal) => select(signal, timeframe, indicator)),
+    ])),
+  ])) as BacktestSegments["indicatorPhase"];
+}
+
 function groupSegments<K extends string>(signals: BacktestSignal[], keys: readonly K[], select: (signal: BacktestSignal) => K): Record<K, BacktestSegmentStats> {
   return Object.fromEntries(keys.map((key) => [key, segmentStats(signals.filter((signal) => select(signal) === key))])) as Record<K, BacktestSegmentStats>;
 }
@@ -155,6 +192,9 @@ export function summarizeBacktest(signals: BacktestSignal[]): BacktestSummary {
       shortNoise: groupSegments(signals, ["STABLE", "NORMAL", "UNSTABLE", "CHOPPY", "UNKNOWN"] as const, (signal) => noiseBand(signal.candidate.noiseShort.score, signal.candidate.noiseShort.sufficient)),
       mediumNoise: groupSegments(signals, ["STABLE", "NORMAL", "UNSTABLE", "CHOPPY", "UNKNOWN"] as const, (signal) => noiseBand(signal.candidate.noiseMedium.score, signal.candidate.noiseMedium.sufficient)),
       earlyPresence: groupSegments(signals, ["WITH_EARLY", "WITHOUT_EARLY"] as const, (signal) => hasEarlyPhase(signal) ? "WITH_EARLY" : "WITHOUT_EARLY"),
+      maAlignment: groupSegments(signals, ["BOTH_ALIGNED", "NOT_ALIGNED"] as const, (signal) => signal.candidate.ma1h && signal.candidate.ma30m ? "BOTH_ALIGNED" : "NOT_ALIGNED"),
+      payout: groupSegments(signals, ["BELOW_80", "80_TO_89", "90_PLUS", "UNKNOWN"] as const, (signal) => payoutBand(signal.candidate.payout)),
+      indicatorPhase: indicatorPhaseSegments(signals),
     },
   };
 }
@@ -165,6 +205,7 @@ export function runBacktest(series: BacktestSeries[], direction: Direction, conf
     expiryMinutes: config.expiryMinutes,
     soonWindowMinutes: config.soonWindowMinutes ?? 30,
     payoutRatio: config.payoutRatio ?? 0.9,
+    requireMaGate: config.requireMaGate ?? true,
   };
   const signals: BacktestSignal[] = [];
 
@@ -178,6 +219,7 @@ export function runBacktest(series: BacktestSeries[], direction: Direction, conf
         candlesThrough(item.candles30m, evaluatedAt),
         candlesThrough(item.candles1h, evaluatedAt),
         direction,
+        { requireMaGate: resolved.requireMaGate },
       );
       if (!candidate) continue;
       const opportunity = classifyOpportunity(candidate.score);

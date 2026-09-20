@@ -63,6 +63,9 @@ test("summarizes win rate, expected value and SOON conversion separately", () =>
   assert.equal(summary.segments.shortNoise.STABLE.signals, 5);
   assert.equal(summary.segments.shortNoise.STABLE.winRate, 2 / 3);
   assert.equal(summary.segments.earlyPresence.WITHOUT_EARLY.signals, 5);
+  assert.equal(summary.segments.maAlignment.BOTH_ALIGNED.signals, 5);
+  assert.equal(summary.segments.payout["90_PLUS"].signals, 5);
+  assert.equal(summary.segments.indicatorPhase["1H"].AO.optimal.signals, 5);
 });
 
 test("classifies market noise into stable through choppy bands", () => {
@@ -82,4 +85,15 @@ test("segments early-backed signals separately from mature signals", () => {
   assert.equal(summary.segments.earlyPresence.WITH_EARLY.winRate, 0);
   assert.equal(summary.segments.earlyPresence.WITHOUT_EARLY.signals, 1);
   assert.equal(summary.segments.earlyPresence.WITHOUT_EARLY.winRate, 1);
+});
+
+test("segments each indicator phase by timeframe", () => {
+  const varied = structuredClone(candidate);
+  varied.breakdown1h.phases.ao = "optimal";
+  varied.breakdown30m.phases.rsi = "early";
+  varied.breakdown5m.phases.stochastic = "late";
+  const summary = summarizeBacktest([{ ...signal("NOW", "WIN", 0.9), candidate: varied }]);
+  assert.equal(summary.segments.indicatorPhase["1H"].AO.optimal.winRate, 1);
+  assert.equal(summary.segments.indicatorPhase["30M"].RSI.early.signals, 1);
+  assert.equal(summary.segments.indicatorPhase["5M"].STOCHASTIC.late.expectedValuePerSignal, 0.9);
 });
