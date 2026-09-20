@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { candlesThrough, evaluateOutcome, summarizeBacktest, type BacktestSignal } from "../src/lib/backtest.ts";
+import { candlesThrough, evaluateOutcome, noiseBand, summarizeBacktest, type BacktestSignal } from "../src/lib/backtest.ts";
 import type { Candidate, Candle } from "../src/lib/types.ts";
 
 const candle = (time: string, close: number): Candle => ({ time, open: close, high: close, low: close, close });
@@ -37,11 +37,11 @@ const candidate: Candidate = {
   noiseMedium: { score: 30, reversals: 2, efficiency: 70, failedMoves: 1, rangePercent: 0.8, bars: 12, sufficient: true },
 };
 
-function signal(opportunity: "NOW" | "SOON", outcome: BacktestSignal["outcome"], pnlPerUnit: number, becameNowWithinWindow = false): BacktestSignal {
+function signal(opportunity: "NOW" | "SOON", outcome: BacktestSignal["outcome"], pnlPerUnit: number, becameNowWithinWindow = false, minutesToNow: number | null = null): BacktestSignal {
   return {
     assetId: 1, assetName: "GSMI", evaluatedAt: "2026-09-13T00:00:00Z", direction: "BULL",
     opportunity, candidate, entry: 100, exit: outcome === "NO_EXIT" ? null : 101,
-    outcome, pnlPerUnit, becameNowWithinWindow,
+    outcome, pnlPerUnit, becameNowWithinWindow, minutesToNow,
   };
 }
 
@@ -49,7 +49,7 @@ test("summarizes win rate, expected value and SOON conversion separately", () =>
   const summary = summarizeBacktest([
     signal("NOW", "WIN", 0.9),
     signal("NOW", "LOSS", -1),
-    signal("SOON", "WIN", 0.9, true),
+    signal("SOON", "WIN", 0.9, true, 15),
     signal("SOON", "PUSH", 0),
     signal("SOON", "NO_EXIT", 0),
   ]);
@@ -59,4 +59,27 @@ test("summarizes win rate, expected value and SOON conversion separately", () =>
   assert.ok(Math.abs(summary.pnlPerUnit - 0.8) < 1e-12);
   assert.ok(Math.abs(summary.expectedValuePerSignal! - 0.2) < 1e-12);
   assert.equal(summary.soonToNowRate, 1 / 3);
+  assert.equal(summary.averageMinutesToNow, 15);
+  assert.equal(summary.segments.shortNoise.STABLE.signals, 5);
+  assert.equal(summary.segments.shortNoise.STABLE.winRate, 2 / 3);
+  assert.equal(summary.segments.earlyPresence.WITHOUT_EARLY.signals, 5);
+});
+
+test("classifies market noise into stable through choppy bands", () => {
+  assert.equal(noiseBand(0), "STABLE");
+  assert.equal(noiseBand(30), "NORMAL");
+  assert.equal(noiseBand(50), "UNSTABLE");
+  assert.equal(noiseBand(70), "CHOPPY");
+  assert.equal(noiseBand(10, false), "UNKNOWN");
+});
+
+test("segments early-backed signals separately from mature signals", () => {
+  const early = structuredClone(candidate);
+  early.breakdown5m.phases.ao = "early";
+  const earlySignal = { ...signal("SOON", "LOSS", -1), candidate: early };
+  const summary = summarizeBacktest([earlySignal, signal("NOW", "WIN", 0.9)]);
+  assert.equal(summary.segments.earlyPresence.WITH_EARLY.signals, 1);
+  assert.equal(summary.segments.earlyPresence.WITH_EARLY.winRate, 0);
+  assert.equal(summary.segments.earlyPresence.WITHOUT_EARLY.signals, 1);
+  assert.equal(summary.segments.earlyPresence.WITHOUT_EARLY.winRate, 1);
 });

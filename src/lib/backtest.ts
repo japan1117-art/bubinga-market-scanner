@@ -29,6 +29,24 @@ export interface BacktestSignal {
   outcome: TradeOutcome;
   pnlPerUnit: number;
   becameNowWithinWindow: boolean;
+  minutesToNow: number | null;
+}
+
+export interface BacktestSegmentStats {
+  signals: number;
+  settled: number;
+  wins: number;
+  losses: number;
+  winRate: number | null;
+  expectedValuePerSignal: number | null;
+}
+
+export type NoiseBand = "STABLE" | "NORMAL" | "UNSTABLE" | "CHOPPY" | "UNKNOWN";
+
+export interface BacktestSegments {
+  shortNoise: Record<NoiseBand, BacktestSegmentStats>;
+  mediumNoise: Record<NoiseBand, BacktestSegmentStats>;
+  earlyPresence: Record<"WITH_EARLY" | "WITHOUT_EARLY", BacktestSegmentStats>;
 }
 
 export interface BacktestSummary {
@@ -44,6 +62,8 @@ export interface BacktestSummary {
   expectedValuePerSignal: number | null;
   soonToNowCount: number;
   soonToNowRate: number | null;
+  averageMinutesToNow: number | null;
+  segments: BacktestSegments;
 }
 
 export interface BacktestResult {
@@ -67,10 +87,43 @@ export function evaluateOutcome(entry: number, exit: number | null, direction: D
   return movedInDirection ? "WIN" : "LOSS";
 }
 
+export function noiseBand(score: number, sufficient = true): NoiseBand {
+  if (!sufficient || !Number.isFinite(score)) return "UNKNOWN";
+  if (score >= 70) return "CHOPPY";
+  if (score >= 50) return "UNSTABLE";
+  if (score >= 30) return "NORMAL";
+  return "STABLE";
+}
+
 function pnl(outcome: TradeOutcome, payoutRatio: number): number {
   if (outcome === "WIN") return payoutRatio;
   if (outcome === "LOSS") return -1;
   return 0;
+}
+
+function segmentStats(signals: BacktestSignal[]): BacktestSegmentStats {
+  const settled = signals.filter((signal) => signal.outcome !== "NO_EXIT");
+  const wins = settled.filter((signal) => signal.outcome === "WIN").length;
+  const losses = settled.filter((signal) => signal.outcome === "LOSS").length;
+  const decisive = wins + losses;
+  const totalPnl = settled.reduce((sum, signal) => sum + signal.pnlPerUnit, 0);
+  return {
+    signals: signals.length,
+    settled: settled.length,
+    wins,
+    losses,
+    winRate: decisive ? wins / decisive : null,
+    expectedValuePerSignal: settled.length ? totalPnl / settled.length : null,
+  };
+}
+
+function hasEarlyPhase(signal: BacktestSignal): boolean {
+  return [signal.candidate.breakdown1h, signal.candidate.breakdown30m, signal.candidate.breakdown5m]
+    .some((breakdown) => Object.values(breakdown.phases).includes("early"));
+}
+
+function groupSegments<K extends string>(signals: BacktestSignal[], keys: readonly K[], select: (signal: BacktestSignal) => K): Record<K, BacktestSegmentStats> {
+  return Object.fromEntries(keys.map((key) => [key, segmentStats(signals.filter((signal) => select(signal) === key))])) as Record<K, BacktestSegmentStats>;
 }
 
 export function summarizeBacktest(signals: BacktestSignal[]): BacktestSummary {
@@ -80,6 +133,7 @@ export function summarizeBacktest(signals: BacktestSignal[]): BacktestSummary {
   const pushes = settled.filter((signal) => signal.outcome === "PUSH").length;
   const decisive = wins + losses;
   const soon = signals.filter((signal) => signal.opportunity === "SOON");
+  const convertedSoon = soon.filter((signal) => signal.minutesToNow !== null);
   const pnlPerUnit = settled.reduce((sum, signal) => sum + signal.pnlPerUnit, 0);
   return {
     totalSignals: signals.length,
@@ -94,6 +148,14 @@ export function summarizeBacktest(signals: BacktestSignal[]): BacktestSummary {
     expectedValuePerSignal: settled.length ? pnlPerUnit / settled.length : null,
     soonToNowCount: soon.filter((signal) => signal.becameNowWithinWindow).length,
     soonToNowRate: soon.length ? soon.filter((signal) => signal.becameNowWithinWindow).length / soon.length : null,
+    averageMinutesToNow: convertedSoon.length
+      ? convertedSoon.reduce((sum, signal) => sum + signal.minutesToNow!, 0) / convertedSoon.length
+      : null,
+    segments: {
+      shortNoise: groupSegments(signals, ["STABLE", "NORMAL", "UNSTABLE", "CHOPPY", "UNKNOWN"] as const, (signal) => noiseBand(signal.candidate.noiseShort.score, signal.candidate.noiseShort.sufficient)),
+      mediumNoise: groupSegments(signals, ["STABLE", "NORMAL", "UNSTABLE", "CHOPPY", "UNKNOWN"] as const, (signal) => noiseBand(signal.candidate.noiseMedium.score, signal.candidate.noiseMedium.sufficient)),
+      earlyPresence: groupSegments(signals, ["WITH_EARLY", "WITHOUT_EARLY"] as const, (signal) => hasEarlyPhase(signal) ? "WITH_EARLY" : "WITHOUT_EARLY"),
+    },
   };
 }
 
@@ -135,6 +197,7 @@ export function runBacktest(series: BacktestSeries[], direction: Direction, conf
         outcome,
         pnlPerUnit: pnl(outcome, resolved.payoutRatio),
         becameNowWithinWindow: false,
+        minutesToNow: null,
       });
     }
   }
@@ -143,13 +206,15 @@ export function runBacktest(series: BacktestSeries[], direction: Direction, conf
     if (signal.opportunity !== "SOON") continue;
     const start = Date.parse(signal.evaluatedAt);
     const end = start + resolved.soonWindowMinutes * 60_000;
-    signal.becameNowWithinWindow = signals.some((future) =>
+    const nextNow = signals.find((future) =>
       future.assetId === signal.assetId &&
       future.direction === signal.direction &&
       future.opportunity === "NOW" &&
       Date.parse(future.evaluatedAt) > start &&
       Date.parse(future.evaluatedAt) <= end,
     );
+    signal.becameNowWithinWindow = Boolean(nextNow);
+    signal.minutesToNow = nextNow ? (Date.parse(nextNow.evaluatedAt) - start) / 60_000 : null;
   }
   return { config: resolved, signals, summary: summarizeBacktest(signals) };
 }
