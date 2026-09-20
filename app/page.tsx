@@ -116,13 +116,22 @@ function DirectionButton({ active, disabled, onClick, tone }: { active: boolean;
 }
 
 function CandidateGroup({ icon, title, items, tone }: { icon: React.ReactNode; title: string; items: ScanResult["candidates"]; tone: "now" | "soon" }) {
+  const [expandedNoise, setExpandedNoise] = useState<Set<number>>(() => new Set());
   if (!items.length) return null;
+  function toggleNoise(assetId: number) {
+    setExpandedNoise((current) => {
+      const next = new Set(current);
+      if (next.has(assetId)) next.delete(assetId); else next.add(assetId);
+      return next;
+    });
+  }
   return (
     <div>
       <h3 className={`mb-3 flex items-center gap-2 text-sm font-bold ${tone === "now" ? "text-orange-300" : "text-amber-200"}`}>{icon}{title}</h3>
       <div className="space-y-3">
-        {items.map((item, index) => (
-          <article key={item.assetId} className="rounded-[22px] border border-white/10 bg-[#0c1a14] p-5">
+        {items.map((item, index) => {
+          const noiseOpen = expandedNoise.has(item.assetId);
+          return <article key={item.assetId} className="rounded-[22px] border border-white/10 bg-[#0c1a14] p-5">
             <div className="flex items-start justify-between gap-4">
               <div className="flex gap-3"><span className="grid h-8 w-8 place-items-center rounded-full bg-white/[0.06] text-xs font-semibold text-white/45">{index + 1}</span><div><h4 className="font-semibold tracking-tight">{item.name}</h4><p className="mt-1 text-xs text-white/40">Payout {item.payout}% · 1H {item.score1h} / 30M {item.score30m} / 5M {item.score5m}</p></div></div>
               <div className="text-right"><strong className="text-3xl tracking-[-0.05em]">{item.score}</strong><span className="ml-1 text-xs text-white/35">点</span></div>
@@ -138,14 +147,19 @@ function CandidateGroup({ icon, title, items, tone }: { icon: React.ReactNode; t
                 <BreakdownRow label="30M" value={item.breakdown30m} />
                 <BreakdownRow label="5M" value={item.breakdown5m} />
               </div>
-              <div className="mt-4 grid grid-cols-2 gap-2 border-t border-white/10 pt-4">
-                <NoiseMetric label="短期ノイズ" window="直近30分" value={item.noiseShort} />
-                <NoiseMetric label="中期ノイズ" window="直近1時間" value={item.noiseMedium} />
-              </div>
-              <p className="mt-2 text-center text-[10px] text-white/30">ノイズ値は低いほど安定（現在は参考表示・スコア対象外）</p>
+              <button type="button" aria-expanded={noiseOpen} aria-controls={`noise-${tone}-${item.assetId}`} onClick={() => toggleNoise(item.assetId)} className="mt-4 min-h-11 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-xs font-bold text-white/65 transition hover:bg-white/[0.08]">
+                {noiseOpen ? "ノイズ詳細を閉じる" : "ノイズを確認"}
+              </button>
+              {noiseOpen && <div id={`noise-${tone}-${item.assetId}`}>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <NoiseMetric label="短期ノイズ" window="直近30分" value={item.noiseShort} />
+                  <NoiseMetric label="中期ノイズ" window="直近1時間" value={item.noiseMedium} />
+                </div>
+                <p className="mt-2 text-center text-[10px] text-white/30">低いほど安定（参考表示・スコア対象外）</p>
+              </div>}
             </div>
           </article>
-        ))}
+        })}
       </div>
     </div>
   );

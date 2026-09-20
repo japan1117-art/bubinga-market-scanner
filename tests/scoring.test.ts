@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { ema, rsi, stochastic } from "../src/lib/indicators.ts";
-import { classifyAo, classifyRsi, classifyStochastic, combineTimeframeScores, DEFAULT_MA_GATE_CONFIG, maGate, scoreIndicators } from "../src/lib/scoring.ts";
+import { classifyAo, classifyRsi, classifyStochastic, combineTimeframeScores, DEFAULT_MA_GATE_CONFIG, EARLY_MULTIPLIER, EARLY_TIMING_ADVANCE, maGate, scoreIndicators } from "../src/lib/scoring.ts";
 import type { Candle } from "../src/lib/types.ts";
 
 function trend(sign = 1): Candle[] {
@@ -24,7 +24,11 @@ test("MA gate can disable the EMA50 confirmation for calibration", () => {
 test("default MA calibration remains EMA20/EMA50 with three slope points", () => {
   assert.deepEqual(DEFAULT_MA_GATE_CONFIG, { fastPeriod: 20, slowPeriod: 50, slopePoints: 3, requirePriceSide: true, requireFastSlowAlignment: true });
 });
-test("All early phases total 70 by specification", () => assert.equal(Math.round(35 * 0.7 + 30 * 0.7 + 35 * 0.7), 70));
+test("early scoring advances thirty percent of the remaining distance to optimal", () => {
+  assert.equal(EARLY_TIMING_ADVANCE, 0.3);
+  assert.ok(Math.abs(EARLY_MULTIPLIER - 0.79) < 1e-12);
+  assert.equal(Math.round(35 * EARLY_MULTIPLIER + 30 * EARLY_MULTIPLIER + 35 * EARLY_MULTIPLIER), 79);
+});
 test("combines 1h, 30m and 5m scores at 60/30/10 weights", () => {
   assert.equal(combineTimeframeScores(90, 70, 50), 80);
   assert.equal(combineTimeframeScores(100, 100, 0), 90);

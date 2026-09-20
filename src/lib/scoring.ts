@@ -2,7 +2,9 @@ import { ao, ema, rsi, stochastic } from "./indicators.ts";
 import { assessMarketNoise } from "./market-noise.ts";
 import type { Candle, Candidate, Direction, IndicatorBreakdown, Phase } from "./types.ts";
 
-const MULTIPLIER: Record<Phase, number> = { early: 0.7, optimal: 1, late: 0.55, none: 0 };
+export const EARLY_TIMING_ADVANCE = 0.3;
+export const EARLY_MULTIPLIER = 0.7 + (1 - 0.7) * EARLY_TIMING_ADVANCE;
+const MULTIPLIER: Record<Phase, number> = { early: EARLY_MULTIPLIER, optimal: 1, late: 0.55, none: 0 };
 
 export interface MaGateConfig {
   fastPeriod: number;
