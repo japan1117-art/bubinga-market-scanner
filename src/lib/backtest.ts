@@ -14,6 +14,7 @@ export interface BacktestConfig {
   soonWindowMinutes?: number;
   payoutRatio?: number;
   requireMaGate?: boolean;
+  signalCooldownMinutes?: number;
 }
 
 export type TradeOutcome = "WIN" | "LOSS" | "PUSH" | "NO_EXIT";
@@ -86,6 +87,11 @@ function timestamp(candle: Candle): number {
 
 export function candlesThrough(candles: Candle[], evaluatedAt: number): Candle[] {
   return candles.filter((candle) => timestamp(candle) <= evaluatedAt);
+}
+
+export function confirmedCandlesThrough(candles: Candle[], evaluatedAt: number, timeframeMinutes: number): Candle[] {
+  const interval = timeframeMinutes * 60_000;
+  return candles.filter((candle) => timestamp(candle) + interval <= evaluatedAt);
 }
 
 export function evaluateOutcome(entry: number, exit: number | null, direction: Direction): TradeOutcome {
@@ -206,18 +212,21 @@ export function runBacktest(series: BacktestSeries[], direction: Direction, conf
     soonWindowMinutes: config.soonWindowMinutes ?? 30,
     payoutRatio: config.payoutRatio ?? 0.9,
     requireMaGate: config.requireMaGate ?? true,
+    signalCooldownMinutes: config.signalCooldownMinutes ?? 0,
   };
   const signals: BacktestSignal[] = [];
 
   for (const item of series) {
     const ordered5m = item.candles5m.toSorted((a, b) => timestamp(a) - timestamp(b));
+    let nextEligibleAt = Number.NEGATIVE_INFINITY;
     for (const current of ordered5m) {
-      const evaluatedAt = timestamp(current);
+      const evaluatedAt = timestamp(current) + 5 * 60_000;
+      if (evaluatedAt < nextEligibleAt) continue;
       const candidate = scoreAsset(
         item.asset,
-        candlesThrough(ordered5m, evaluatedAt),
-        candlesThrough(item.candles30m, evaluatedAt),
-        candlesThrough(item.candles1h, evaluatedAt),
+        confirmedCandlesThrough(ordered5m, evaluatedAt, 5),
+        confirmedCandlesThrough(item.candles30m, evaluatedAt, 30),
+        confirmedCandlesThrough(item.candles1h, evaluatedAt, 60),
         direction,
         { requireMaGate: resolved.requireMaGate },
       );
@@ -225,12 +234,12 @@ export function runBacktest(series: BacktestSeries[], direction: Direction, conf
       const opportunity = classifyOpportunity(candidate.score);
       if (opportunity === "HIDDEN") continue;
       const exitAt = evaluatedAt + resolved.expiryMinutes * 60_000;
-      const exitCandle = ordered5m.find((candle) => timestamp(candle) >= exitAt);
+      const exitCandle = ordered5m.find((candle) => timestamp(candle) + 5 * 60_000 >= exitAt);
       const outcome = evaluateOutcome(current.close, exitCandle?.close ?? null, direction);
       signals.push({
         assetId: item.asset.id,
         assetName: item.asset.name,
-        evaluatedAt: current.time,
+        evaluatedAt: new Date(evaluatedAt).toISOString(),
         direction,
         opportunity,
         candidate,
@@ -241,6 +250,7 @@ export function runBacktest(series: BacktestSeries[], direction: Direction, conf
         becameNowWithinWindow: false,
         minutesToNow: null,
       });
+      nextEligibleAt = evaluatedAt + resolved.signalCooldownMinutes * 60_000;
     }
   }
 

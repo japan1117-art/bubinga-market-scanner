@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { candlesThrough, evaluateOutcome, noiseBand, summarizeBacktest, type BacktestSignal } from "../src/lib/backtest.ts";
+import { candlesThrough, confirmedCandlesThrough, evaluateOutcome, noiseBand, summarizeBacktest, type BacktestSignal } from "../src/lib/backtest.ts";
 import type { Candidate, Candle } from "../src/lib/types.ts";
 
 const candle = (time: string, close: number): Candle => ({ time, open: close, high: close, low: close, close });
@@ -13,6 +13,11 @@ test("candlesThrough never includes a future candle", () => {
   ];
   const visible = candlesThrough(candles, Date.parse("2026-09-13T00:05:00Z"));
   assert.deepEqual(visible.map((item) => item.close), [100, 101]);
+});
+
+test("confirmedCandlesThrough treats candle time as its opening time", () => {
+  const input = [candle("2026-09-13T00:00:00Z", 100), candle("2026-09-13T00:05:00Z", 101)];
+  assert.deepEqual(confirmedCandlesThrough(input, Date.parse("2026-09-13T00:05:00Z"), 5).map((item) => item.close), [100]);
 });
 
 test("evaluates bull and bear outcomes symmetrically", () => {

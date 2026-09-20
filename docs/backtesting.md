@@ -6,15 +6,14 @@
 
 ## No-lookahead rule
 
-`Candle.time`はその足の確定時刻として扱う。評価時刻以下の足だけを指標計算へ渡す。未来足は指定した判定期間後の結果判定にだけ使用する。
-
-実APIで`time`が開始時刻を表す場合、この前提は変わるため、時刻仕様確認前の実測結果は正式採用しない。
+`Candle.time`は足の開始時刻として保守的に扱い、`time + timeframe <= 評価時刻`を満たす確定足だけを指標計算へ渡す。未来足は指定した判定期間後の結果判定にだけ使用する。
 
 ## Configurable inputs
 
 - expiryMinutes: 結果判定期間。必須
 - soonWindowMinutes: SOONからNOWへの移行確認期間。既定30分
 - payoutRatio: 1単位ベットの勝利純利益。既定0.90
+- signalCooldownMinutes: 同一銘柄で次の取引候補を数えるまでの待機時間。レポートCLIは判定期間と同じ値を既定とし、同時保有を防ぐ
 
 ## Metrics
 
@@ -42,3 +41,14 @@ MAゲートの寄与は同じOHLCデータに対して `requireMaGate: true / fa
 ## Validation gates
 
 最低50〜100件は動作確認の初期サンプルにすぎない。閾値変更を判断する場合は、銘柄・期間・BULL/BEARを分けたout-of-sample検証を追加する。
+
+## Reproducible dataset workflow
+
+履歴データは一度だけ取得してローカルJSONへ固定し、その後の比較では同じファイルを再利用する。これにより条件ごとの取得時刻差をなくし、Bubingaへの不要な再アクセスも防ぐ。スナップショットとレポートはGit管理対象外とする。
+
+```bash
+pnpm backtest:capture -- --from 2026-09-01T00:00:00Z --to 2026-09-10T00:00:00Z --assets 49,50
+pnpm backtest:run -- --expiry 5
+```
+
+取得コマンドはassetsを1回取得し、Candlesは本番接続で確認済みの範囲（5Mは18時間、30Mは3日、1Hは5日）に分割する。境界で重複した足は時刻キーで1本に統合する。最大20銘柄を明示指定し、Cookie・Authorizationは送信しない。実行前に対象IDをassets APIの現在値で確認し、利用条件が不明な間は個人検証の範囲を超えてデータを共有しない。
