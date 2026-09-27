@@ -23,7 +23,7 @@ test("one-minute noise detects sigma expansion with repeated reversals", () => {
   assert.ok(result.score >= 70);
 });
 
-test("sigma expansion alone contributes at most twenty points", () => {
+test("sigma expansion alone contributes at most ten points", () => {
   let close = 100;
   const trending = Array.from({ length: 60 }, (_, index): Candle => {
     const open = close;
@@ -36,7 +36,24 @@ test("sigma expansion alone contributes at most twenty points", () => {
   assert.ok(result.sigmaZ > 2);
   assert.equal(result.reversalRate, 0);
   assert.equal(result.efficiency, 100);
-  assert.equal(result.score, 20);
+  assert.equal(result.score, 10);
+});
+
+test("wick-heavy alternating candles are treated as severe noise", () => {
+  let close = 100;
+  const noisy = Array.from({ length: 60 }, (_, index): Candle => {
+    const open = close;
+    const move = index >= 50 ? (index % 2 === 0 ? 0.1 : -0.1) : 0.02;
+    close = open + move;
+    const wick = index >= 50 ? 1 : 0.005;
+    return { time: new Date(Date.UTC(2026, 8, 27) + index * 60_000).toISOString(), open,
+      high: Math.max(open, close) + wick, low: Math.min(open, close) - wick, close };
+  });
+  const result = assessOneMinuteNoise(noisy);
+  assert.ok(result.wickRatio >= 90);
+  assert.ok(result.reversalRate >= 80);
+  assert.ok(result.efficiency <= 10);
+  assert.ok(result.score >= 80);
 });
 
 test("one-minute noise fails closed with fewer than sixty bars", () => {

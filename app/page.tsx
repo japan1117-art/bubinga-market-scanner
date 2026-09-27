@@ -202,10 +202,10 @@ function OneMinuteNoiseCard({ value }: { value: OneMinuteNoiseAssessment }) {
       <p><span className="opacity-55">通常σとの比較</span><br /><b>{value.sigmaRatio.toFixed(2)}倍 · {signedZ}</b></p>
       <p><span className="opacity-55">反転率</span><br /><b>{value.reversalRate}%（{value.reversals}回）</b></p>
       <p><span className="opacity-55">方向効率</span><br /><b>{value.efficiency}%</b></p>
-      <p><span className="opacity-55">平均ヒゲ比率</span><br /><b>{value.wickRatio}%</b></p>
+      <p><span className="opacity-55">ヒゲノイズ</span><br /><b>{value.wickRatio}%</b></p>
       <p><span className="opacity-55">通常σ</span><br /><b>{value.baselineSigmaBps.toFixed(2)} bps</b></p>
     </div>
-    <p className="mt-3 text-[9px] leading-relaxed opacity-55">1分足による代理評価です。1分内の30秒ごとの値動き順序までは判定できません。</p>
+    <p className="mt-3 text-[9px] leading-relaxed opacity-55">ヒゲ35・反転30・非効率25・σ10で評価。1分内の30秒ごとの値動き順序までは判定できません。</p>
   </div>;
 }
 
