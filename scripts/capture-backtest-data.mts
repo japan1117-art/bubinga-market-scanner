@@ -7,6 +7,7 @@ import { BACKTEST_DATASET_VERSION, type BacktestDataset } from "../src/lib/backt
 import type { Candle } from "../src/lib/types.ts";
 
 const CHUNK_MS: Record<SupportedTimeframe, number> = {
+  "1m": 2 * 60 * 60_000,
   "5m": 18 * 60 * 60_000,
   "30m": 3 * 24 * 60 * 60_000,
   "1h": 5 * 24 * 60 * 60_000,

@@ -7,14 +7,16 @@ import type { Asset, Candle, Candidate, Direction, ScanResult } from "./types.ts
 
 const TARGET_LIMIT = 20;
 const CONCURRENCY = 4;
-const CANDLE_CACHE_MS: Record<SupportedTimeframe, number> = { "5m": 30_000, "30m": 120_000, "1h": 120_000 };
+const CANDLE_CACHE_MS: Record<SupportedTimeframe, number> = { "1m": 60_000, "5m": 30_000, "30m": 120_000, "1h": 120_000 };
 const candleCache = new Map<string, { expiresAt: number; value: CandleValidation }>();
 const HISTORY_MS: Record<SupportedTimeframe, number> = {
+  "1m": 2 * 60 * 60_000,
   "5m": 18 * 60 * 60_000,
   "30m": 3 * 24 * 60 * 60_000,
   "1h": 5 * 24 * 60 * 60_000,
 };
 const INTERVAL_MS: Record<SupportedTimeframe, number> = {
+  "1m": 60_000,
   "5m": 5 * 60_000,
   "30m": 30 * 60_000,
   "1h": 60 * 60_000,

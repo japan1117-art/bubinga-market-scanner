@@ -61,11 +61,13 @@
 - Candlesの`from / to`はISO日時を受理。Unix秒はHTTP 400
 - 正しいquery keyは`detalization`。`dataization`はextra fieldとしてHTTP 400
 - Asset 49で`detalization=5m / 30m / 1h`がすべてHTTP 200となり、`{ "data": [...] }`のOHLCを取得
+- 2026-09-27、Asset 49・直近2時間で`detalization=1m`を認証情報なしで1回確認し、HTTP 200・121本を取得
 - 技術的到達性の確認であり、再配布・商用利用の許諾を意味しない
 
 ## Candle adapter v0.1
 
 - 実通信確認済みの`detalization=5m / 30m / 1h`を扱う
+- 選択銘柄のノイズ測定に限り`detalization=1m`を扱い、直近2時間を1回取得して次の1分境界までキャッシュする
 - `from`/`to`はISO日時を利用する
 - Cookie・Authorizationを送らない
 - ISO日時、epoch秒、epochミリ秒をUTC ISOへ正規化

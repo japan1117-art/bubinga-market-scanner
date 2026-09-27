@@ -73,6 +73,19 @@ test("builds a 5m request and validates five-minute gaps", async () => {
   assert.equal(result.gaps[0].missing, 2);
 });
 
+test("builds a one-minute request for selected-asset noise", async () => {
+  let requestUrl = "";
+  const result = await fetchBubingaCandles({
+    assetId: 49, timeframe: "1m", from: "2026-09-27T00:00:00Z", to: "2026-09-27T02:00:00Z",
+    fetcher: async (input) => {
+      requestUrl = String(input);
+      return new Response(JSON.stringify({ data: [{ time: "2026-09-27T00:00:00Z", open: 100, high: 101, low: 99, close: 100.5 }] }), { status: 200 });
+    },
+  });
+  assert.equal(result.candles.length, 1);
+  assert.equal(new URL(requestUrl).searchParams.get("detalization"), "1m");
+});
+
 test("builds a confirmed 1h request and validates hourly gaps", async () => {
   let requestUrl = "";
   const result = await fetchBubingaCandles({

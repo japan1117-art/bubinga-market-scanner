@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { Activity, ArrowDownRight, ArrowUpRight, Clock3, Flame, ScanSearch } from "lucide-react";
-import type { Direction, IndicatorBreakdown, NoiseAssessment, Phase, ScanResult } from "@/src/lib/types";
+import type { Direction, IndicatorBreakdown, NoiseAssessment, OneMinuteNoiseAssessment, Phase, ScanResult } from "@/src/lib/types";
 import { runLiveScan } from "@/src/lib/live-scan";
 import { classifyOpportunity } from "@/src/lib/candidate-selection";
 import { toScanFailure, type ScanFailure } from "@/src/lib/scan-errors";
+import { fetchOneMinuteNoise } from "@/src/lib/one-minute-noise";
 
 const EMPTY: ScanResult = { scannedAt: "", source: "bubinga", candidates: [], analyzedCount: 0, targetCount: 0, warnings: [] };
 
@@ -117,6 +118,7 @@ function DirectionButton({ active, disabled, onClick, tone }: { active: boolean;
 
 function CandidateGroup({ icon, title, items, tone }: { icon: React.ReactNode; title: string; items: ScanResult["candidates"]; tone: "now" | "soon" }) {
   const [expandedNoise, setExpandedNoise] = useState<Set<number>>(() => new Set());
+  const [minuteNoise, setMinuteNoise] = useState<Record<number, { loading: boolean; value?: OneMinuteNoiseAssessment; error?: string }>>({});
   if (!items.length) return null;
   function toggleNoise(assetId: number) {
     setExpandedNoise((current) => {
@@ -125,12 +127,22 @@ function CandidateGroup({ icon, title, items, tone }: { icon: React.ReactNode; t
       return next;
     });
   }
+  async function measureMinuteNoise(assetId: number) {
+    setMinuteNoise((current) => ({ ...current, [assetId]: { loading: true } }));
+    try {
+      const value = await fetchOneMinuteNoise(assetId);
+      setMinuteNoise((current) => ({ ...current, [assetId]: { loading: false, value } }));
+    } catch {
+      setMinuteNoise((current) => ({ ...current, [assetId]: { loading: false, error: "1分足データを取得できませんでした。時間をおいて再試行してください。" } }));
+    }
+  }
   return (
     <div>
       <h3 className={`mb-3 flex items-center gap-2 text-sm font-bold ${tone === "now" ? "text-orange-300" : "text-amber-200"}`}>{icon}{title}</h3>
       <div className="space-y-3">
         {items.map((item, index) => {
           const noiseOpen = expandedNoise.has(item.assetId);
+          const minute = minuteNoise[item.assetId];
           return <article key={item.assetId} className="rounded-[22px] border border-white/10 bg-[#0c1a14] p-5">
             <div className="flex items-start justify-between gap-4">
               <div className="flex gap-3"><span className="grid h-8 w-8 place-items-center rounded-full bg-white/[0.06] text-xs font-semibold text-white/45">{index + 1}</span><div><h4 className="font-semibold tracking-tight">{item.name}</h4><p className="mt-1 text-xs text-white/40">Payout {item.payout}% · 1H {item.score1h} / 30M {item.score30m} / 5M {item.score5m}</p></div></div>
@@ -156,6 +168,13 @@ function CandidateGroup({ icon, title, items, tone }: { icon: React.ReactNode; t
                   <NoiseMetric label="中期ノイズ" window="直近1時間" value={item.noiseMedium} />
                 </div>
                 <p className="mt-2 text-center text-[10px] text-white/30">低いほど安定（参考表示・スコア対象外）</p>
+                <div className="mt-3 border-t border-white/10 pt-3">
+                  {!minute?.value && !minute?.error && <button type="button" disabled={minute?.loading} onClick={() => measureMinuteNoise(item.assetId)} className="min-h-11 w-full rounded-xl border border-sky-300/20 bg-sky-400/10 px-4 text-xs font-bold text-sky-200 transition hover:bg-sky-400/15 disabled:cursor-wait disabled:opacity-60">
+                    {minute?.loading ? "1分足を測定中…" : "1分足ノイズを測定（この銘柄のみ）"}
+                  </button>}
+                  {minute?.error && <div className="rounded-xl border border-rose-300/20 bg-rose-400/10 p-3 text-xs text-rose-100/70"><p>{minute.error}</p><button type="button" onClick={() => measureMinuteNoise(item.assetId)} className="mt-2 font-bold text-rose-200 underline">再試行</button></div>}
+                  {minute?.value && <OneMinuteNoiseCard value={minute.value} />}
+                </div>
               </div>}
             </div>
           </article>
@@ -163,6 +182,31 @@ function CandidateGroup({ icon, title, items, tone }: { icon: React.ReactNode; t
       </div>
     </div>
   );
+}
+
+function oneMinuteDecision(score: number) {
+  if (score >= 70) return { label: "30秒取引は見送り推奨", className: "text-rose-200 border-rose-300/25 bg-rose-400/10" };
+  if (score >= 50) return { label: "30秒取引は注意", className: "text-orange-200 border-orange-300/25 bg-orange-400/10" };
+  if (score >= 30) return { label: "通常範囲", className: "text-amber-100 border-amber-200/20 bg-amber-300/10" };
+  return { label: "比較的安定", className: "text-emerald-200 border-emerald-300/20 bg-emerald-400/10" };
+}
+
+function OneMinuteNoiseCard({ value }: { value: OneMinuteNoiseAssessment }) {
+  if (!value.sufficient) return <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3 text-xs text-white/50">1分足が60本未満のため測定できません</div>;
+  const decision = oneMinuteDecision(value.score);
+  const signedZ = `${value.sigmaZ >= 0 ? "+" : ""}${value.sigmaZ.toFixed(1)}σ`;
+  return <div className={`rounded-xl border p-4 ${decision.className}`}>
+    <div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-[0.14em] opacity-60">1M noise · 直近10分 / 通常60分</p><p className="mt-1 text-sm font-bold">{decision.label}</p></div><strong className="text-2xl">{value.score}<span className="ml-0.5 text-[10px] font-medium opacity-60">/100</span></strong></div>
+    <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-current/10 pt-3 text-[10px]">
+      <p><span className="opacity-55">現在σ</span><br /><b>{value.currentSigmaBps.toFixed(2)} bps</b></p>
+      <p><span className="opacity-55">通常σとの比較</span><br /><b>{value.sigmaRatio.toFixed(2)}倍 · {signedZ}</b></p>
+      <p><span className="opacity-55">反転率</span><br /><b>{value.reversalRate}%（{value.reversals}回）</b></p>
+      <p><span className="opacity-55">方向効率</span><br /><b>{value.efficiency}%</b></p>
+      <p><span className="opacity-55">平均ヒゲ比率</span><br /><b>{value.wickRatio}%</b></p>
+      <p><span className="opacity-55">通常σ</span><br /><b>{value.baselineSigmaBps.toFixed(2)} bps</b></p>
+    </div>
+    <p className="mt-3 text-[9px] leading-relaxed opacity-55">1分足による代理評価です。1分内の30秒ごとの値動き順序までは判定できません。</p>
+  </div>;
 }
 
 function symbol(phase: Phase) { return phase === "optimal" ? "◎" : phase === "early" ? "↗" : phase === "late" ? "△" : "×"; }

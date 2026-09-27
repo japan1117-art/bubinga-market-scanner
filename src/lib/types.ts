@@ -11,6 +11,19 @@ export interface NoiseAssessment {
   score: number; reversals: number; efficiency: number; failedMoves: number;
   rangePercent: number; bars: 6 | 12; sufficient: boolean;
 }
+export interface OneMinuteNoiseAssessment {
+  score: number;
+  sigmaZ: number;
+  sigmaRatio: number;
+  currentSigmaBps: number;
+  baselineSigmaBps: number;
+  reversalRate: number;
+  reversals: number;
+  efficiency: number;
+  wickRatio: number;
+  bars: number;
+  sufficient: boolean;
+}
 export interface Candidate {
   assetId: number; name: string; payout: number; direction: Direction; score: number;
   score5m: number; score30m: number; score1h: number;
