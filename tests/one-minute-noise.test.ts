@@ -23,6 +23,22 @@ test("one-minute noise detects sigma expansion with repeated reversals", () => {
   assert.ok(result.score >= 70);
 });
 
+test("sigma expansion alone contributes at most twenty points", () => {
+  let close = 100;
+  const trending = Array.from({ length: 60 }, (_, index): Candle => {
+    const open = close;
+    const amplitude = index >= 50 ? 1 : 0.02;
+    close = open + amplitude;
+    return { time: new Date(Date.UTC(2026, 8, 27) + index * 60_000).toISOString(), open,
+      high: close, low: open, close };
+  });
+  const result = assessOneMinuteNoise(trending);
+  assert.ok(result.sigmaZ > 2);
+  assert.equal(result.reversalRate, 0);
+  assert.equal(result.efficiency, 100);
+  assert.equal(result.score, 20);
+});
+
 test("one-minute noise fails closed with fewer than sixty bars", () => {
   const result = assessOneMinuteNoise(candles().slice(0, 59));
   assert.equal(result.sufficient, false);

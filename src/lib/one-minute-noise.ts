@@ -3,6 +3,9 @@ import type { Candle, OneMinuteNoiseAssessment } from "./types.ts";
 
 const REQUIRED_BARS = 60;
 const CURRENT_WINDOW = 10;
+const SIGMA_WEIGHT = 0.2;
+const REVERSAL_WEIGHT = 0.45;
+const INEFFICIENCY_WEIGHT = 0.35;
 const CACHE = new Map<number, { expiresAt: number; value: OneMinuteNoiseAssessment }>();
 
 function clamp(value: number, min = 0, max = 100): number {
@@ -58,7 +61,9 @@ export function assessOneMinuteNoise(candles: Candle[]): OneMinuteNoiseAssessmen
   }));
 
   const sigmaScore = clamp(Math.max(0, sigmaZ) / 2 * 100);
-  const score = sigmaScore * 0.4 + reversalRate * 0.35 + (100 - efficiency) * 0.25;
+  const score = sigmaScore * SIGMA_WEIGHT
+    + reversalRate * REVERSAL_WEIGHT
+    + (100 - efficiency) * INEFFICIENCY_WEIGHT;
   return {
     score: Math.round(clamp(score)), sigmaZ, sigmaRatio,
     currentSigmaBps, baselineSigmaBps, reversalRate: Math.round(reversalRate), reversals,
