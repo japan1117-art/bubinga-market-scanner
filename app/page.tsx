@@ -212,7 +212,7 @@ function OneMinuteNoiseCard({ value }: { value: OneMinuteNoiseAssessment }) {
 function symbol(phase: Phase) { return phase === "optimal" ? "◎" : phase === "early" ? "↗" : phase === "late" ? "△" : "×"; }
 function formatPoint(value: number) { return Number.isInteger(value) ? String(value) : value.toFixed(1); }
 function BreakdownRow({ label, value, weight, total, max }: { label: string; value: IndicatorBreakdown; weight: number; total: number; max: number }) {
-  const setupLabel = value.setup === "preparing" ? "準備中" : value.setup === "potential" ? "潜在" : value.setup === "confirmed" ? "反転確認" : value.setup === "post_zero" ? "0突破" : "";
+  const setupLabel = value.setup === "preparing" ? "準備中" : value.setup === "potential" ? "潜在" : value.setup === "confirmed" ? "反転確認" : value.setup === "post_zero" ? "0突破" : value.setup === "exhausted" ? "終盤警戒" : "";
   const weighted = (points: number) => formatPoint(points * weight);
   return <>
     <strong className="self-center text-white/55">{label}<small className="block whitespace-nowrap text-[9px] text-amber-200/70">{setupLabel || "通常採点"}</small><small className="block whitespace-nowrap text-[9px] font-medium text-white/35">計 {total}/{max}</small></strong>

@@ -101,6 +101,17 @@ test("a mature H1 reversal caps the final score even when lower timeframes are s
   assert.ok(result);
   assert.ok(result.score <= 69);
 });
+test("post-zero exhaustion plus RSI overheat cuts the timeframe score to thirty percent", () => {
+  const bull = candlesFromDeltas(0.5, 70, [0.53, 0.11, -0.22, -0.7, -0.25, 0.35, -0.09, 0.28, -0.32, 0.19]);
+  const bear = mirror(bull);
+  const bullScore = scoreIndicators(bull, "BULL");
+  const bearScore = scoreIndicators(bear, "BEAR");
+  assert.equal(bullScore.setup, "exhausted");
+  assert.equal(bullScore.score, 30);
+  assert.equal(bearScore.setup, "exhausted");
+  assert.equal(bearScore.score, 30);
+  assert.deepEqual(timeframeContributions(bullScore.score, bullScore.score, bullScore.score), { score1h: 15, score30m: 11, score5m: 5 });
+});
 test("a clear H1 trend remains a candidate even when lower timeframes are not aligned", () => {
   const sideways = candlesFromDeltas(0, 0, Array.from({ length: 80 }, (_, index) => index % 2 === 0 ? 1 : -1));
   const result = scoreAsset({ id: 1, name: "TEST", payout: 90 }, sideways, sideways, trend(1), "BULL");

@@ -203,7 +203,14 @@ export function scoreIndicators(candles: Candle[], direction: Direction, persist
     );
     if (recentSetups.includes("confirmed")) setup = "confirmed";
   }
-  const score = setup === "confirmed" ? 100 : setup === "potential" || setup === "post_zero" ? 80 : setup === "preparing" ? 60 : baseScore;
+  const exhausted = setup === "post_zero" && hasStrongAdverseReversal(candles, direction);
+  const overheated = direction === "BULL" ? current.rsiValue > 72 : current.rsiValue < 28;
+  if (exhausted) setup = "exhausted";
+  const score = setup === "confirmed" ? 100
+    : setup === "potential" || setup === "post_zero" ? 80
+      : setup === "preparing" ? 60
+        : setup === "exhausted" ? (overheated ? 30 : 40)
+          : baseScore;
   return { score, baseScore, rsi: current.rsiValue, setup, phases, points };
 }
 
@@ -232,16 +239,14 @@ export function scoreAsset(
   if ((options.requireMaGate ?? true) && !ma1h && setup1h === "none") return null;
   const adverse1h = hasStrongAdverseReversal(candles1h, direction);
   const adverse30m = hasStrongAdverseReversal(candles30m, direction);
-  const setup30m = classifyReversalSetup(candles30m, direction);
-  if (adverse1h && adverse30m && setup1h === "none" && setup30m === "none") return null;
+  if (adverse1h && adverse30m) return null;
   const h1 = scoreIndicators(candles1h, direction, 4);
   const m30 = scoreIndicators(candles30m, direction);
   const m5 = scoreIndicators(candles5m, direction);
   const h1TrendScore = ma1h && !adverse1h ? Math.max(h1.score, 80) : h1.score;
   const weightedScore = combineTimeframeScores(h1TrendScore, m30.score, m5.score);
-  const setup5m = classifyReversalSetup(candles5m, direction);
-  const shortTermCap = (adverse30m && setup30m === "none") || (hasStrongAdverseReversal(candles5m, direction) && setup5m === "none") ? 79 : 100;
-  const h1MaturityCap = adverse1h && setup1h === "none" ? 69 : 100;
+  const shortTermCap = adverse30m || hasStrongAdverseReversal(candles5m, direction) ? 79 : 100;
+  const h1MaturityCap = adverse1h ? 69 : 100;
   const h1ContextFloor = ma1h && !adverse1h ? 60 : 0;
   const score = Math.max(h1ContextFloor, Math.min(weightedScore, shortTermCap, h1MaturityCap));
   const contributions = timeframeContributions(h1TrendScore, m30.score, m5.score);
