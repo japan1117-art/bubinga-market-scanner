@@ -12,17 +12,7 @@ function trend(sign = 1): Candle[] {
 }
 
 function bullConfirmedReversal(): Candle[] {
-  let price = 100;
-  const candles: Candle[] = [];
-  for (let index = 0; index < 70; index += 1) {
-    const open = price; price -= 1;
-    candles.push({ time: String(index), open, close: price, high: open + 0.2, low: price - 0.2 });
-  }
-  for (const delta of [2, -2, 0.5, 0]) {
-    const open = price; price += delta;
-    candles.push({ time: String(candles.length), open, close: price, high: Math.max(open, price) + 0.2, low: Math.min(open, price) - 0.2 });
-  }
-  return candles;
+  return candlesFromDeltas(-0.5, 65, [-0.93, -0.91, 1.18, 0.01, -0.43, -0.52, 1.34, 0.27, 0.04, 0.64, -0.97, 0.17, -0.89, 0.32, 0.37]);
 }
 
 function mirror(candles: Candle[]): Candle[] {
@@ -125,6 +115,11 @@ test("AO color turn plus prior-candle higher low and Stochastic cross is full sc
   assert.equal(scoreIndicators(bull, "BULL").score, 100);
   assert.equal(classifyReversalSetup(bear, "BEAR"), "confirmed");
   assert.equal(scoreIndicators(bear, "BEAR").score, 100);
+});
+test("a confirmed bull reversal cannot score full points when Stochastic is overbought", () => {
+  const overbought = candlesFromDeltas(-0.5, 65, [-0.55, 0.11, 0.61, 1.27, 0.44, 0.99, -0.53, -0.01, -0.8, 0.81, 0.23, 0.84, -0.66, 0.28, 0.66]);
+  assert.equal(classifyReversalSetup(overbought, "BULL"), "overextended");
+  assert.equal(scoreIndicators(overbought, "BULL").score, 40);
 });
 test("AO beyond zero is capped at eighty percent", () => {
   assert.equal(classifyReversalSetup(trend(1), "BULL"), "post_zero");
