@@ -153,11 +153,11 @@ function CandidateGroup({ icon, title, items, tone }: { icon: React.ReactNode; t
                 <Metric label="1H MA" value={item.ma1h ? `${item.direction === "BULL" ? "↑" : "↓"} 通過` : "反転監視"} />
                 <Metric label="30M MA" value={item.ma30m ? `${item.direction === "BULL" ? "↑" : "↓"} 通過` : "反転監視"} />
               </div>
-              <div className="grid grid-cols-[3rem_repeat(3,1fr)] gap-x-2 gap-y-2 text-center text-[11px]">
+              <div className="grid grid-cols-[3.5rem_repeat(3,1fr)] gap-x-1 gap-y-2 text-center text-[10px] sm:gap-x-2 sm:text-[11px]">
                 <span /><span className="text-white/35">AO</span><span className="text-white/35">RSI</span><span className="text-white/35">Stoch</span>
-                <BreakdownRow label="1H" value={item.breakdown1h} />
-                <BreakdownRow label="30M" value={item.breakdown30m} />
-                <BreakdownRow label="5M" value={item.breakdown5m} />
+                <BreakdownRow label="1H" value={item.breakdown1h} weight={0.5} total={item.score1h} max={50} />
+                <BreakdownRow label="30M" value={item.breakdown30m} weight={0.35} total={item.score30m} max={35} />
+                <BreakdownRow label="5M" value={item.breakdown5m} weight={0.15} total={item.score5m} max={15} />
               </div>
               <button type="button" aria-expanded={noiseOpen} aria-controls={`noise-${tone}-${item.assetId}`} onClick={() => toggleNoise(item.assetId)} className="mt-4 min-h-11 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-xs font-bold text-white/65 transition hover:bg-white/[0.08]">
                 {noiseOpen ? "ノイズ詳細を閉じる" : "ノイズを確認"}
@@ -211,13 +211,14 @@ function OneMinuteNoiseCard({ value }: { value: OneMinuteNoiseAssessment }) {
 
 function symbol(phase: Phase) { return phase === "optimal" ? "◎" : phase === "early" ? "↗" : phase === "late" ? "△" : "×"; }
 function formatPoint(value: number) { return Number.isInteger(value) ? String(value) : value.toFixed(1); }
-function BreakdownRow({ label, value }: { label: string; value: IndicatorBreakdown }) {
+function BreakdownRow({ label, value, weight, total, max }: { label: string; value: IndicatorBreakdown; weight: number; total: number; max: number }) {
   const setupLabel = value.setup === "preparing" ? "準備中" : value.setup === "potential" ? "潜在" : value.setup === "confirmed" ? "反転確認" : value.setup === "post_zero" ? "0突破" : "";
+  const weighted = (points: number) => formatPoint(points * weight);
   return <>
-    <strong className="self-center text-white/55">{label}<small className="block whitespace-nowrap text-[9px] text-amber-200/70">{setupLabel}</small></strong>
-    <span className="self-center whitespace-nowrap font-bold text-white/80">{symbol(value.phases.ao)} {formatPoint(value.ao)} / 35点</span>
-    <span className="font-bold leading-tight text-white/80"><span className="whitespace-nowrap">{formatPoint(value.rsi)} / 30点</span><small className="mt-0.5 block whitespace-nowrap text-[10px] font-medium text-white/40">（RSI {value.rsiValue.toFixed(0)}）</small></span>
-    <span className="self-center whitespace-nowrap font-bold text-white/80">{symbol(value.phases.stochastic)} {formatPoint(value.stochastic)} / 35点</span>
+    <strong className="self-center text-white/55">{label}<small className="block whitespace-nowrap text-[9px] text-amber-200/70">{setupLabel || "通常採点"}</small><small className="block whitespace-nowrap text-[9px] font-medium text-white/35">計 {total}/{max}</small></strong>
+    <span className="self-center whitespace-nowrap font-bold text-white/80">{symbol(value.phases.ao)} {weighted(value.ao)}/{formatPoint(35 * weight)}</span>
+    <span className="font-bold leading-tight text-white/80"><span className="whitespace-nowrap">{weighted(value.rsi)}/{formatPoint(30 * weight)}</span><small className="mt-0.5 block whitespace-nowrap text-[9px] font-medium text-white/40">RSI {value.rsiValue.toFixed(0)}</small></span>
+    <span className="self-center whitespace-nowrap font-bold text-white/80">{symbol(value.phases.stochastic)} {weighted(value.stochastic)}/{formatPoint(35 * weight)}</span>
   </>;
 }
 function Metric({ label, value }: { label: string; value: string }) { return <div><p className="text-white/35">{label}</p><p className="mt-1 text-sm font-bold text-white/80">{value}</p></div>; }
