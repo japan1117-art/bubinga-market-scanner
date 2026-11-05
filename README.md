@@ -9,7 +9,7 @@ Bubingaのペイアウト上位20銘柄から、選択方向のMAゲートとAO�
 - Issue #1相当のスマホ向けPWA画面を実装
 - EMA、AO、RSI、Stochastic、BULL/BEARスコアリングを純粋関数として実装
 - Bubingaの未認証HTTP APIからassetsと5m/30m/1h candlesを取得するMVPを実装
-- 30Mと5Mを50%ずつ採点し、1H/30MのMAゲート後に最大5銘柄を表示
+- 1H/30M/5Mを50%/35%/15%で採点し、反転準備からトレンド終盤まで判定して最大5銘柄を表示
 - PWAとVercel Previewを実装済み。Production公開はリリース作業中
 
 ## Commands

@@ -16,6 +16,24 @@ export function sma(values: number[], period: number): number[] {
   return output;
 }
 
+export function standardDeviation(values: number[]): number {
+  if (values.length < 2) return 0;
+  const average = values.reduce((sum, value) => sum + value, 0) / values.length;
+  return Math.sqrt(values.reduce((sum, value) => sum + (value - average) ** 2, 0) / values.length);
+}
+
+export function bollingerBands(values: number[], period = 10, deviations = 2): { middle: number[]; upper: number[]; lower: number[] } {
+  if (values.length < period) return { middle: [], upper: [], lower: [] };
+  const middle: number[] = []; const upper: number[] = []; const lower: number[] = [];
+  for (let end = period; end <= values.length; end += 1) {
+    const window = values.slice(end - period, end);
+    const average = window.reduce((sum, value) => sum + value, 0) / period;
+    const deviation = standardDeviation(window);
+    middle.push(average); upper.push(average + deviations * deviation); lower.push(average - deviations * deviation);
+  }
+  return { middle, upper, lower };
+}
+
 export function ao(candles: Candle[]): number[] {
   const median = candles.map((c) => (c.high + c.low) / 2);
   const fast = sma(median, 5); const slow = sma(median, 34); const offset = fast.length - slow.length;

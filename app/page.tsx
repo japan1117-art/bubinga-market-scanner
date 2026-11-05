@@ -145,13 +145,13 @@ function CandidateGroup({ icon, title, items, tone }: { icon: React.ReactNode; t
           const minute = minuteNoise[item.assetId];
           return <article key={item.assetId} className="rounded-[22px] border border-white/10 bg-[#0c1a14] p-5">
             <div className="flex items-start justify-between gap-4">
-              <div className="flex gap-3"><span className="grid h-8 w-8 place-items-center rounded-full bg-white/[0.06] text-xs font-semibold text-white/45">{index + 1}</span><div><h4 className="font-semibold tracking-tight">{item.name}</h4><p className="mt-1 text-xs text-white/40">Payout {item.payout}% · 1H {item.score1h} / 30M {item.score30m} / 5M {item.score5m}</p></div></div>
+              <div className="flex gap-3"><span className="grid h-8 w-8 place-items-center rounded-full bg-white/[0.06] text-xs font-semibold text-white/45">{index + 1}</span><div><h4 className="font-semibold tracking-tight">{item.name}</h4><p className="mt-1 text-xs text-white/40">Payout {item.payout}% · 1H {item.score1h}/50 · 30M {item.score30m}/35 · 5M {item.score5m}/15</p></div></div>
               <div className="text-right"><strong className="text-3xl tracking-[-0.05em]">{item.score}</strong><span className="ml-1 text-xs text-white/35">点</span></div>
             </div>
             <div className="mt-4 border-t border-white/10 pt-4">
               <div className="mb-3 grid grid-cols-2 gap-2 text-center text-[11px]">
-                <Metric label="1H MA" value={`${item.direction === "BULL" ? "↑" : "↓"} 通過`} />
-                <Metric label="30M MA" value={`${item.direction === "BULL" ? "↑" : "↓"} 通過`} />
+                <Metric label="1H MA" value={item.ma1h ? `${item.direction === "BULL" ? "↑" : "↓"} 通過` : "反転監視"} />
+                <Metric label="30M MA" value={item.ma30m ? `${item.direction === "BULL" ? "↑" : "↓"} 通過` : "反転監視"} />
               </div>
               <div className="grid grid-cols-[3rem_repeat(3,1fr)] gap-x-2 gap-y-2 text-center text-[11px]">
                 <span /><span className="text-white/35">AO</span><span className="text-white/35">RSI</span><span className="text-white/35">Stoch</span>
@@ -212,8 +212,9 @@ function OneMinuteNoiseCard({ value }: { value: OneMinuteNoiseAssessment }) {
 function symbol(phase: Phase) { return phase === "optimal" ? "◎" : phase === "early" ? "↗" : phase === "late" ? "△" : "×"; }
 function formatPoint(value: number) { return Number.isInteger(value) ? String(value) : value.toFixed(1); }
 function BreakdownRow({ label, value }: { label: string; value: IndicatorBreakdown }) {
+  const setupLabel = value.setup === "preparing" ? "準備中" : value.setup === "potential" ? "潜在" : value.setup === "confirmed" ? "反転確認" : value.setup === "post_zero" ? "0突破" : "";
   return <>
-    <strong className="self-center text-white/55">{label}</strong>
+    <strong className="self-center text-white/55">{label}<small className="block whitespace-nowrap text-[9px] text-amber-200/70">{setupLabel}</small></strong>
     <span className="self-center whitespace-nowrap font-bold text-white/80">{symbol(value.phases.ao)} {formatPoint(value.ao)} / 35点</span>
     <span className="font-bold leading-tight text-white/80"><span className="whitespace-nowrap">{formatPoint(value.rsi)} / 30点</span><small className="mt-0.5 block whitespace-nowrap text-[10px] font-medium text-white/40">（RSI {value.rsiValue.toFixed(0)}）</small></span>
     <span className="self-center whitespace-nowrap font-bold text-white/80">{symbol(value.phases.stochastic)} {formatPoint(value.stochastic)} / 35点</span>

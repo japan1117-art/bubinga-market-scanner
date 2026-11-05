@@ -1,11 +1,13 @@
 export type Direction = "BULL" | "BEAR";
 export type Phase = "early" | "optimal" | "late" | "none";
+export type ReversalStage = "preparing" | "potential" | "confirmed" | "post_zero" | "none";
 export interface Candle { time: string; open: number; high: number; low: number; close: number }
 export interface Asset { id: number; name: string; code: string; enabled: boolean; payout: number }
 export interface IndicatorBreakdown {
   ao: number; rsi: number; stochastic: number;
   phases: { ao: Phase; rsi: Phase; stochastic: Phase };
   rsiValue: number;
+  setup?: ReversalStage;
 }
 export interface NoiseAssessment {
   score: number; reversals: number; efficiency: number; failedMoves: number;
