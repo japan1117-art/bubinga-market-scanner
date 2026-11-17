@@ -120,7 +120,9 @@ function rawIndicatorPhases(candles: Candle[], direction: Direction) {
   };
 }
 
-export function classifyReversalSetup(candles: Candle[], direction: Direction): ReversalStage {
+export type ScoringTimeframe = "1h" | "30m" | "5m";
+
+export function classifyReversalSetup(candles: Candle[], direction: Direction, timeframe: ScoringTimeframe = "5m"): ReversalStage {
   if (candles.length < 35) return "none";
   const closes = candles.map((candle) => candle.close);
   const aoValues = ao(candles); const rsiValues = rsi(closes); const stoch = stochastic(candles);
@@ -135,13 +137,15 @@ export function classifyReversalSetup(candles: Candle[], direction: Direction): 
   const bandWidth = upper! - lower!;
   const nearLower = current.close <= lower! + bandWidth * 0.15;
   const nearUpper = current.close >= upper! - bandWidth * 0.15;
+  const higherTimeframe = timeframe === "1h" || timeframe === "30m";
   if (direction === "BULL") {
     const aoColorTurned = currentAo! < 0 && currentAo! > previousAo!;
     const higherLow = current.low > previous.low;
     const goldenCross = previousK! <= previousD! && currentK! > currentD! && currentK! > previousK!;
-    const reversalConfirmed = aoColorTurned && higherLow && goldenCross;
+    const crossContinuation = higherTimeframe && previousK! > previousD! && currentK! > currentD! && currentK! > previousK!;
+    const reversalConfirmed = aoColorTurned && higherLow && (goldenCross || crossContinuation);
     if (reversalConfirmed && (currentK! > 80 || currentRsi! > 72)) return "overextended";
-    if (reversalConfirmed && (currentK! > 60 || currentRsi! > 65)) return "late_confirmed";
+    if (reversalConfirmed && (currentK! > (higherTimeframe ? 75 : 60) || currentRsi! > 65)) return "late_confirmed";
     if (reversalConfirmed && currentK! >= 20) return "confirmed";
     if (currentAo! < 0 && currentRsi! <= 40 && currentK! <= 20 && nearLower) return "potential";
     const stabilizing = current.close > current.open || currentK! > previousK! || currentAo! > previousAo!;
@@ -151,9 +155,10 @@ export function classifyReversalSetup(candles: Candle[], direction: Direction): 
     const aoColorTurned = currentAo! > 0 && currentAo! < previousAo!;
     const lowerHigh = current.high < previous.high;
     const deadCross = previousK! >= previousD! && currentK! < currentD! && currentK! < previousK!;
-    const reversalConfirmed = aoColorTurned && lowerHigh && deadCross;
+    const crossContinuation = higherTimeframe && previousK! < previousD! && currentK! < currentD! && currentK! < previousK!;
+    const reversalConfirmed = aoColorTurned && lowerHigh && (deadCross || crossContinuation);
     if (reversalConfirmed && (currentK! < 20 || currentRsi! < 28)) return "overextended";
-    if (reversalConfirmed && (currentK! < 40 || currentRsi! < 35)) return "late_confirmed";
+    if (reversalConfirmed && (currentK! < (higherTimeframe ? 25 : 40) || currentRsi! < 35)) return "late_confirmed";
     if (reversalConfirmed && currentK! <= 80) return "confirmed";
     if (currentAo! > 0 && currentRsi! >= 60 && currentK! >= 80 && nearUpper) return "potential";
     const stabilizing = current.close < current.open || currentK! < previousK! || currentAo! < previousAo!;
@@ -185,9 +190,9 @@ export function hasStrongAdverseReversal(candles: Candle[], direction: Direction
   return aoReversing(raw.aoValues, direction) && recentOppositeStochCross(raw.stoch.k, raw.stoch.d, direction);
 }
 
-export function scoreIndicators(candles: Candle[], direction: Direction, persistenceBars = 1): IndicatorScore {
+export function scoreIndicators(candles: Candle[], direction: Direction, persistenceBars = 1, timeframe: ScoringTimeframe = "5m"): IndicatorScore {
   const current = rawIndicatorPhases(candles, direction);
-  let setup = classifyReversalSetup(candles, direction);
+  let setup = classifyReversalSetup(candles, direction, timeframe);
   const phases = { ...current.phases };
   if (persistenceBars > 1) {
     const recent = Array.from({ length: Math.min(persistenceBars, candles.length) }, (_, offset) =>
@@ -205,7 +210,7 @@ export function scoreIndicators(candles: Candle[], direction: Direction, persist
   const baseScore = points.ao + points.rsi + points.stochastic;
   if (persistenceBars > 1 && setup === "none") {
     const recentSetups = Array.from({ length: Math.min(persistenceBars, candles.length) }, (_, offset) =>
-      classifyReversalSetup(candles.slice(0, candles.length - offset), direction),
+      classifyReversalSetup(candles.slice(0, candles.length - offset), direction, timeframe),
     );
     if (recentSetups.includes("confirmed")) setup = "confirmed";
   }
@@ -243,14 +248,14 @@ export function scoreAsset(
   options: ScoreAssetOptions = {},
 ): Candidate | null {
   const ma30m = maGate(candles30m, direction); const ma1h = maGate(candles1h, direction);
-  const setup1h = classifyReversalSetup(candles1h, direction);
+  const setup1h = classifyReversalSetup(candles1h, direction, "1h");
   if ((options.requireMaGate ?? true) && !ma1h && setup1h === "none") return null;
   const adverse1h = hasStrongAdverseReversal(candles1h, direction);
   const adverse30m = hasStrongAdverseReversal(candles30m, direction);
   if (adverse1h && adverse30m) return null;
-  const h1 = scoreIndicators(candles1h, direction, 4);
-  const m30 = scoreIndicators(candles30m, direction);
-  const m5 = scoreIndicators(candles5m, direction);
+  const h1 = scoreIndicators(candles1h, direction, 4, "1h");
+  const m30 = scoreIndicators(candles30m, direction, 2, "30m");
+  const m5 = scoreIndicators(candles5m, direction, 1, "5m");
   const h1TrendScore = ma1h && !adverse1h ? Math.max(h1.score, 80) : h1.score;
   const weightedScore = combineTimeframeScores(h1TrendScore, m30.score, m5.score);
   const shortTermCap = adverse30m || hasStrongAdverseReversal(candles5m, direction) ? 79 : 100;
