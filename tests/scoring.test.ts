@@ -12,7 +12,7 @@ function trend(sign = 1): Candle[] {
 }
 
 function bullConfirmedReversal(): Candle[] {
-  return candlesFromDeltas(-0.5, 65, [-0.93, -0.91, 1.18, 0.01, -0.43, -0.52, 1.34, 0.27, 0.04, 0.64, -0.97, 0.17, -0.89, 0.32, 0.37]);
+  return candlesFromDeltas(-0.5, 65, [-1.05, -0.69, -0.25, 0.85, 0.86, -0.75, 1.27, -0.2, -0.05, -0.41, 0.67, -1.1, -1.01, 0.07, 0.5]);
 }
 
 function mirror(candles: Candle[]): Candle[] {
@@ -121,14 +121,13 @@ test("a confirmed bull reversal cannot score full points when Stochastic is over
   assert.equal(classifyReversalSetup(overbought, "BULL"), "overextended");
   assert.equal(scoreIndicators(overbought, "BULL").score, 40);
 });
-test("H1 and 30M keep a healthy Stochastic reversal high-scoring through seventy-five", () => {
+test("Stochastic reversals above fifty-five lose points gradually", () => {
   const candles = candlesFromDeltas(-0.4, 65, [-0.22, 1.01, -0.69, 0.94, 0.21, -0.14, -0.73, -0.31, -0.7, 1.04, 0.54, -0.29, -0.74, 0.29, 0.33]);
-  assert.equal(classifyReversalSetup(candles, "BULL", "5m"), "late_confirmed");
-  assert.equal(classifyReversalSetup(candles, "BULL", "1h"), "confirmed");
-  assert.equal(classifyReversalSetup(candles, "BULL", "30m"), "confirmed");
-  assert.equal(scoreIndicators(candles, "BULL", 1, "1h").score, 100);
-  assert.equal(scoreIndicators(candles, "BULL", 1, "30m").score, 100);
-  assert.equal(scoreIndicators(candles, "BULL", 1, "5m").score, 70);
+  assert.equal(classifyReversalSetup(candles, "BULL", "5m"), "slightly_late");
+  assert.equal(classifyReversalSetup(candles, "BULL", "1h"), "slightly_late");
+  assert.equal(scoreIndicators(candles, "BULL", 1, "1h").score, 85);
+  assert.equal(scoreIndicators(candles, "BULL", 1, "30m").score, 85);
+  assert.equal(scoreIndicators(candles, "BULL", 1, "5m").score, 85);
 });
 test("AO beyond zero is capped at eighty percent", () => {
   assert.equal(classifyReversalSetup(trend(1), "BULL"), "post_zero");

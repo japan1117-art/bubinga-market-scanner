@@ -145,7 +145,9 @@ export function classifyReversalSetup(candles: Candle[], direction: Direction, t
     const crossContinuation = higherTimeframe && previousK! > previousD! && currentK! > currentD! && currentK! > previousK!;
     const reversalConfirmed = aoColorTurned && higherLow && (goldenCross || crossContinuation);
     if (reversalConfirmed && (currentK! > 80 || currentRsi! > 72)) return "overextended";
-    if (reversalConfirmed && (currentK! > (higherTimeframe ? 75 : 60) || currentRsi! > 65)) return "late_confirmed";
+    if (reversalConfirmed && currentK! > 75) return "very_late";
+    if (reversalConfirmed && (currentK! > 65 || currentRsi! > 65)) return "late_confirmed";
+    if (reversalConfirmed && currentK! > 55) return "slightly_late";
     if (reversalConfirmed && currentK! >= 20) return "confirmed";
     if (currentAo! < 0 && currentRsi! <= 40 && currentK! <= 20 && nearLower) return "potential";
     const stabilizing = current.close > current.open || currentK! > previousK! || currentAo! > previousAo!;
@@ -158,7 +160,9 @@ export function classifyReversalSetup(candles: Candle[], direction: Direction, t
     const crossContinuation = higherTimeframe && previousK! < previousD! && currentK! < currentD! && currentK! < previousK!;
     const reversalConfirmed = aoColorTurned && lowerHigh && (deadCross || crossContinuation);
     if (reversalConfirmed && (currentK! < 20 || currentRsi! < 28)) return "overextended";
-    if (reversalConfirmed && (currentK! < (higherTimeframe ? 25 : 40) || currentRsi! < 35)) return "late_confirmed";
+    if (reversalConfirmed && currentK! < 25) return "very_late";
+    if (reversalConfirmed && (currentK! < 35 || currentRsi! < 35)) return "late_confirmed";
+    if (reversalConfirmed && currentK! < 45) return "slightly_late";
     if (reversalConfirmed && currentK! <= 80) return "confirmed";
     if (currentAo! > 0 && currentRsi! >= 60 && currentK! >= 80 && nearUpper) return "potential";
     const stabilizing = current.close < current.open || currentK! < previousK! || currentAo! < previousAo!;
@@ -218,8 +222,10 @@ export function scoreIndicators(candles: Candle[], direction: Direction, persist
   const overheated = direction === "BULL" ? current.rsiValue > 72 : current.rsiValue < 28;
   if (exhausted) setup = "exhausted";
   const score = setup === "confirmed" ? 100
-    : setup === "late_confirmed" ? 70
-      : setup === "overextended" ? 40
+    : setup === "slightly_late" ? 85
+      : setup === "late_confirmed" ? 70
+        : setup === "very_late" ? 55
+          : setup === "overextended" ? 40
     : setup === "potential" || setup === "post_zero" ? 80
       : setup === "preparing" ? 60
         : setup === "exhausted" ? (overheated ? 30 : 40)
