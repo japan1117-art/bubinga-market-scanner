@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { bollingerBands, ema, rsi, stochastic } from "../src/lib/indicators.ts";
-import { classifyAo, classifyReversalSetup, classifyRsi, classifyStochastic, combineTimeframeScores, DEFAULT_MA_GATE_CONFIG, EARLY_MULTIPLIER, EARLY_TIMING_ADVANCE, hasHigherTimeframeStochRollover, maGate, scoreAsset, scoreIndicators, timeframeContributions } from "../src/lib/scoring.ts";
+import { classifyAo, classifyReversalSetup, classifyRsi, classifyStochastic, combineTimeframeScores, DEFAULT_MA_GATE_CONFIG, EARLY_MULTIPLIER, EARLY_TIMING_ADVANCE, hasFreshZeroReversal, hasHigherTimeframeStochRollover, maGate, scoreAsset, scoreIndicators, timeframeContributions } from "../src/lib/scoring.ts";
 import type { Candle } from "../src/lib/types.ts";
 
 function trend(sign = 1): Candle[] {
@@ -17,6 +17,10 @@ function bullConfirmedReversal(): Candle[] {
 
 function bullHighZoneDeadCross(): Candle[] {
   return candlesFromDeltas(0.35, 65, [-0.4559, -0.1288, -0.6502, 0.4671, -1.0354, 0.8109, 1.1398, 0.4969, -1.1213, 0.2595, 0.8799, -0.7785, 0.6851, -0.3396, -0.3552]);
+}
+
+function bullFreshZeroReversal(): Candle[] {
+  return candlesFromDeltas(-0.35, 65, [-0.0317, 0.121, 0.0318, 1.0163, 1.0257, 0.5045, -0.8373, 0.2491, 0.0958, 1.0626, 0.6374, -0.557, -0.9381, -0.4166, 0.2115]);
 }
 
 function mirror(candles: Candle[]): Candle[] {
@@ -108,6 +112,17 @@ test("a high-zone H1 or 30M opposite Stochastic cross removes the candidate", ()
 test("low-zone pre-cross reversal preparation is not mistaken for a high-zone rollover", () => {
   assert.equal(hasHigherTimeframeStochRollover(trend(-1), "BULL"), false);
   assert.ok(scoreAsset({ id: 1, name: "TEST", payout: 90 }, trend(-1), trend(-1), trend(-1), "BULL"));
+});
+test("a fresh AO zero break with low RSI and bullish Stochastic alignment prioritizes BULL", () => {
+  const bull = bullFreshZeroReversal(); const bear = mirror(bull);
+  const asset = { id: 1, name: "TEST", payout: 90 };
+  assert.equal(hasFreshZeroReversal(bull, "BULL", "1h"), true);
+  assert.equal(classifyReversalSetup(bull, "BULL", "1h"), "confirmed");
+  assert.equal(scoreIndicators(bull, "BULL", 4, "1h").score, 100);
+  assert.ok(scoreAsset(asset, trend(1), trend(1), bull, "BULL"), "the reversal exception must bypass the bearish MA context");
+  assert.equal(scoreAsset(asset, trend(-1), trend(-1), bull, "BEAR", { requireMaGate: false }), null, "the opposite scan must not retain a bearish trend floor");
+  assert.equal(hasFreshZeroReversal(bear, "BEAR", "1h"), true);
+  assert.equal(scoreAsset(asset, trend(1), trend(1), bear, "BULL", { requireMaGate: false }), null);
 });
 test("post-zero exhaustion plus RSI overheat cuts the timeframe score to thirty percent", () => {
   const bull = candlesFromDeltas(0.5, 70, [0.53, 0.11, -0.22, -0.7, -0.25, 0.35, -0.09, 0.28, -0.32, 0.19]);

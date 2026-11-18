@@ -122,6 +122,31 @@ function rawIndicatorPhases(candles: Candle[], direction: Direction) {
 
 export type ScoringTimeframe = "1h" | "30m" | "5m";
 
+function zeroCrossLookback(timeframe: ScoringTimeframe): number {
+  return timeframe === "1h" ? 4 : timeframe === "30m" ? 2 : 1;
+}
+
+function recentlyCrossedAoZero(values: number[], direction: Direction, lookback: number): boolean {
+  const recent = values.slice(-(lookback + 1));
+  return recent.slice(1).some((current, index) => direction === "BULL"
+    ? recent[index] <= 0 && current > 0
+    : recent[index] >= 0 && current < 0);
+}
+
+export function hasFreshZeroReversal(candles: Candle[], direction: Direction, timeframe: ScoringTimeframe = "5m"): boolean {
+  const aoValues = ao(candles); const rsiValues = rsi(candles.map((candle) => candle.close)); const stoch = stochastic(candles);
+  const currentAo = aoValues.at(-1); const previousAo = aoValues.at(-2); const currentRsi = rsiValues.at(-1);
+  const currentK = stoch.k.at(-1); const previousK = stoch.k.at(-2); const currentD = stoch.d.at(-1);
+  if ([currentAo, previousAo, currentRsi, currentK, previousK, currentD].some((value) => value === undefined)) return false;
+  const freshZeroCross = recentlyCrossedAoZero(aoValues, direction, zeroCrossLookback(timeframe));
+  if (direction === "BULL") {
+    return freshZeroCross && currentAo! > previousAo! && currentRsi! <= 45
+      && currentK! > currentD! && currentK! > previousK! && currentK! <= 75;
+  }
+  return freshZeroCross && currentAo! < previousAo! && currentRsi! >= 55
+    && currentK! < currentD! && currentK! < previousK! && currentK! >= 25;
+}
+
 export function classifyReversalSetup(candles: Candle[], direction: Direction, timeframe: ScoringTimeframe = "5m"): ReversalStage {
   if (candles.length < 35) return "none";
   const closes = candles.map((candle) => candle.close);
@@ -138,12 +163,14 @@ export function classifyReversalSetup(candles: Candle[], direction: Direction, t
   const nearLower = current.close <= lower! + bandWidth * 0.15;
   const nearUpper = current.close >= upper! - bandWidth * 0.15;
   const higherTimeframe = timeframe === "1h" || timeframe === "30m";
+  const freshZeroReversal = hasFreshZeroReversal(candles, direction, timeframe);
   if (direction === "BULL") {
     const aoColorTurned = currentAo! < 0 && currentAo! > previousAo!;
     const higherLow = current.low > previous.low;
     const goldenCross = previousK! <= previousD! && currentK! > currentD! && currentK! > previousK!;
     const crossContinuation = higherTimeframe && previousK! > previousD! && currentK! > currentD! && currentK! > previousK!;
     const reversalConfirmed = aoColorTurned && higherLow && (goldenCross || crossContinuation);
+    if (freshZeroReversal) return "confirmed";
     if (reversalConfirmed && (currentK! > 80 || currentRsi! > 72)) return "overextended";
     if (reversalConfirmed && currentK! > 75) return "very_late";
     if (reversalConfirmed && (currentK! > 65 || currentRsi! > 65)) return "late_confirmed";
@@ -159,6 +186,7 @@ export function classifyReversalSetup(candles: Candle[], direction: Direction, t
     const deadCross = previousK! >= previousD! && currentK! < currentD! && currentK! < previousK!;
     const crossContinuation = higherTimeframe && previousK! < previousD! && currentK! < currentD! && currentK! < previousK!;
     const reversalConfirmed = aoColorTurned && lowerHigh && (deadCross || crossContinuation);
+    if (freshZeroReversal) return "confirmed";
     if (reversalConfirmed && (currentK! < 20 || currentRsi! < 28)) return "overextended";
     if (reversalConfirmed && currentK! < 25) return "very_late";
     if (reversalConfirmed && (currentK! < 35 || currentRsi! < 35)) return "late_confirmed";
@@ -276,6 +304,9 @@ export function scoreAsset(
 ): Candidate | null {
   const ma30m = maGate(candles30m, direction); const ma1h = maGate(candles1h, direction);
   const setup1h = classifyReversalSetup(candles1h, direction, "1h");
+  const oppositeDirection: Direction = direction === "BULL" ? "BEAR" : "BULL";
+  if (hasFreshZeroReversal(candles1h, oppositeDirection, "1h")
+    || hasFreshZeroReversal(candles30m, oppositeDirection, "30m")) return null;
   if ((options.requireMaGate ?? true) && !ma1h && setup1h === "none") return null;
   const stochRollover1h = hasHigherTimeframeStochRollover(candles1h, direction);
   const stochRollover30m = hasHigherTimeframeStochRollover(candles30m, direction);
