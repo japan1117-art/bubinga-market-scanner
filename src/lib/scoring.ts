@@ -182,6 +182,26 @@ function aoReversing(values: number[], direction: Direction): boolean {
   return direction === "BULL" ? b < a && c < b : b > a && c > b;
 }
 
+function aoMovingAgainst(values: number[], direction: Direction): boolean {
+  const previous = values.at(-2); const current = values.at(-1);
+  if (previous === undefined || current === undefined) return false;
+  return direction === "BULL" ? current < previous : current > previous;
+}
+
+export function hasHigherTimeframeStochRollover(candles: Candle[], direction: Direction): boolean {
+  const values = stochastic(candles); const currentK = values.k.at(-1); const previousK = values.k.at(-2);
+  const currentD = values.d.at(-1); const previousD = values.d.at(-2);
+  if ([currentK, previousK, currentD, previousD].some((value) => value === undefined)) return false;
+  if (direction === "BULL") {
+    const deadCross = previousK! >= previousD! && currentK! < currentD!;
+    const bearishContinuation = currentK! < currentD! && currentK! < previousK!;
+    return currentK! > 55 && (deadCross || bearishContinuation);
+  }
+  const goldenCross = previousK! <= previousD! && currentK! > currentD!;
+  const bullishContinuation = currentK! > currentD! && currentK! > previousK!;
+  return currentK! < 45 && (goldenCross || bullishContinuation);
+}
+
 function recentOppositeStochCross(k: number[], d: number[], direction: Direction): boolean {
   const recentK = k.slice(-3); const recentD = d.slice(-3);
   if (recentK.length < 3 || recentD.length < 3) return false;
@@ -198,11 +218,12 @@ export function scoreIndicators(candles: Candle[], direction: Direction, persist
   const current = rawIndicatorPhases(candles, direction);
   let setup = classifyReversalSetup(candles, direction, timeframe);
   const phases = { ...current.phases };
+  const aoAgainst = aoMovingAgainst(current.aoValues, direction);
   if (persistenceBars > 1) {
     const recent = Array.from({ length: Math.min(persistenceBars, candles.length) }, (_, offset) =>
       rawIndicatorPhases(candles.slice(0, candles.length - offset), direction).phases,
     );
-    phases.ao = aoReversing(current.aoValues, direction) ? "none" : bestPhase(recent.map((item) => item.ao));
+    phases.ao = aoAgainst ? "none" : bestPhase(recent.map((item) => item.ao));
     phases.stochastic = recentOppositeStochCross(current.stoch.k, current.stoch.d, direction)
       ? "none" : bestPhase(recent.map((item) => item.stochastic));
   }
@@ -218,7 +239,7 @@ export function scoreIndicators(candles: Candle[], direction: Direction, persist
     );
     if (recentSetups.includes("confirmed")) setup = "confirmed";
   }
-  const exhausted = setup === "post_zero" && hasStrongAdverseReversal(candles, direction);
+  const exhausted = setup === "post_zero" && (aoAgainst || hasStrongAdverseReversal(candles, direction));
   const overheated = direction === "BULL" ? current.rsiValue > 72 : current.rsiValue < 28;
   if (exhausted) setup = "exhausted";
   const score = setup === "confirmed" ? 100
@@ -256,6 +277,9 @@ export function scoreAsset(
   const ma30m = maGate(candles30m, direction); const ma1h = maGate(candles1h, direction);
   const setup1h = classifyReversalSetup(candles1h, direction, "1h");
   if ((options.requireMaGate ?? true) && !ma1h && setup1h === "none") return null;
+  const stochRollover1h = hasHigherTimeframeStochRollover(candles1h, direction);
+  const stochRollover30m = hasHigherTimeframeStochRollover(candles30m, direction);
+  if (stochRollover1h || stochRollover30m) return null;
   const adverse1h = hasStrongAdverseReversal(candles1h, direction);
   const adverse30m = hasStrongAdverseReversal(candles30m, direction);
   if (adverse1h && adverse30m) return null;

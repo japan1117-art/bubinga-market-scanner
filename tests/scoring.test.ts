@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { bollingerBands, ema, rsi, stochastic } from "../src/lib/indicators.ts";
-import { classifyAo, classifyReversalSetup, classifyRsi, classifyStochastic, combineTimeframeScores, DEFAULT_MA_GATE_CONFIG, EARLY_MULTIPLIER, EARLY_TIMING_ADVANCE, maGate, scoreAsset, scoreIndicators, timeframeContributions } from "../src/lib/scoring.ts";
+import { classifyAo, classifyReversalSetup, classifyRsi, classifyStochastic, combineTimeframeScores, DEFAULT_MA_GATE_CONFIG, EARLY_MULTIPLIER, EARLY_TIMING_ADVANCE, hasHigherTimeframeStochRollover, maGate, scoreAsset, scoreIndicators, timeframeContributions } from "../src/lib/scoring.ts";
 import type { Candle } from "../src/lib/types.ts";
 
 function trend(sign = 1): Candle[] {
@@ -13,6 +13,10 @@ function trend(sign = 1): Candle[] {
 
 function bullConfirmedReversal(): Candle[] {
   return candlesFromDeltas(-0.5, 65, [-1.05, -0.69, -0.25, 0.85, 0.86, -0.75, 1.27, -0.2, -0.05, -0.41, 0.67, -1.1, -1.01, 0.07, 0.5]);
+}
+
+function bullHighZoneDeadCross(): Candle[] {
+  return candlesFromDeltas(0.35, 65, [-0.4559, -0.1288, -0.6502, 0.4671, -1.0354, 0.8109, 1.1398, 0.4969, -1.1213, 0.2595, 0.8799, -0.7785, 0.6851, -0.3396, -0.3552]);
 }
 
 function mirror(candles: Candle[]): Candle[] {
@@ -90,6 +94,20 @@ test("a mature H1 reversal caps the final score even when lower timeframes are s
   const result = scoreAsset({ id: 1, name: "TEST", payout: 90 }, trend(1), trend(1), mature, "BULL", { requireMaGate: false });
   assert.ok(result);
   assert.ok(result.score <= 69);
+});
+test("a high-zone H1 or 30M opposite Stochastic cross removes the candidate", () => {
+  const bull = bullHighZoneDeadCross(); const bear = mirror(bull);
+  const asset = { id: 1, name: "TEST", payout: 90 };
+  assert.equal(hasHigherTimeframeStochRollover(bull, "BULL"), true);
+  assert.equal(hasHigherTimeframeStochRollover(bear, "BEAR"), true);
+  assert.equal(scoreIndicators(bull, "BULL", 4, "1h").score, 40, "a fresh adverse AO bar must not inherit the earlier positive phase");
+  assert.equal(scoreAsset(asset, trend(1), trend(1), bull, "BULL", { requireMaGate: false }), null);
+  assert.equal(scoreAsset(asset, trend(1), bull, trend(1), "BULL", { requireMaGate: false }), null);
+  assert.equal(scoreAsset(asset, trend(-1), trend(-1), bear, "BEAR", { requireMaGate: false }), null);
+});
+test("low-zone pre-cross reversal preparation is not mistaken for a high-zone rollover", () => {
+  assert.equal(hasHigherTimeframeStochRollover(trend(-1), "BULL"), false);
+  assert.ok(scoreAsset({ id: 1, name: "TEST", payout: 90 }, trend(-1), trend(-1), trend(-1), "BULL"));
 });
 test("post-zero exhaustion plus RSI overheat cuts the timeframe score to thirty percent", () => {
   const bull = candlesFromDeltas(0.5, 70, [0.53, 0.11, -0.22, -0.7, -0.25, 0.35, -0.09, 0.28, -0.32, 0.19]);
