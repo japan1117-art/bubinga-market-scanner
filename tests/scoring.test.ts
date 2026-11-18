@@ -119,7 +119,9 @@ test("a fresh AO zero break with low RSI and bullish Stochastic alignment priori
   assert.equal(hasFreshZeroReversal(bull, "BULL", "1h"), true);
   assert.equal(classifyReversalSetup(bull, "BULL", "1h"), "confirmed");
   assert.equal(scoreIndicators(bull, "BULL", 4, "1h").score, 100);
-  assert.ok(scoreAsset(asset, trend(1), trend(1), bull, "BULL"), "the reversal exception must bypass the bearish MA context");
+  const bullCandidate = scoreAsset(asset, trend(-1), trend(-1), bull, "BULL");
+  assert.ok(bullCandidate, "the reversal exception must bypass the bearish MA context");
+  assert.ok(bullCandidate.score >= 60, "an ideal H1 reversal must remain at least a SOON candidate even before lower timeframes align");
   assert.equal(scoreAsset(asset, trend(-1), trend(-1), bull, "BEAR", { requireMaGate: false }), null, "the opposite scan must not retain a bearish trend floor");
   assert.equal(hasFreshZeroReversal(bear, "BEAR", "1h"), true);
   assert.equal(scoreAsset(asset, trend(1), trend(1), bear, "BULL", { requireMaGate: false }), null);

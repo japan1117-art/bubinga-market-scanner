@@ -304,6 +304,7 @@ export function scoreAsset(
 ): Candidate | null {
   const ma30m = maGate(candles30m, direction); const ma1h = maGate(candles1h, direction);
   const setup1h = classifyReversalSetup(candles1h, direction, "1h");
+  const freshZeroReversal1h = hasFreshZeroReversal(candles1h, direction, "1h");
   const oppositeDirection: Direction = direction === "BULL" ? "BEAR" : "BULL";
   if (hasFreshZeroReversal(candles1h, oppositeDirection, "1h")
     || hasFreshZeroReversal(candles30m, oppositeDirection, "30m")) return null;
@@ -321,7 +322,7 @@ export function scoreAsset(
   const weightedScore = combineTimeframeScores(h1TrendScore, m30.score, m5.score);
   const shortTermCap = adverse30m || hasStrongAdverseReversal(candles5m, direction) ? 79 : 100;
   const h1MaturityCap = adverse1h ? 69 : 100;
-  const h1ContextFloor = ma1h && !adverse1h ? 60 : 0;
+  const h1ContextFloor = (ma1h && !adverse1h) || freshZeroReversal1h ? 60 : 0;
   const score = Math.max(h1ContextFloor, Math.min(weightedScore, shortTermCap, h1MaturityCap));
   const contributions = timeframeContributions(h1TrendScore, m30.score, m5.score);
   return {
