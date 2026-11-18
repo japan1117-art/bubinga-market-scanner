@@ -2,7 +2,7 @@ import { fetchBubingaAssets } from "./bubinga-assets.ts";
 import { fetchBubingaCandles, type CandleValidation, type SupportedTimeframe } from "./bubinga-candles.ts";
 import { rankTradableAssets } from "./asset-ranking.ts";
 import { selectTopCandidates } from "./candidate-selection.ts";
-import { maGate, scoreAsset } from "./scoring.ts";
+import { hasEarlyBottomReversal, hasFreshZeroReversal, scoreAsset } from "./scoring.ts";
 import type { Asset, Candle, Candidate, Direction, ScanResult } from "./types.ts";
 
 const TARGET_LIMIT = 20;
@@ -25,6 +25,11 @@ const INTERVAL_MS: Record<SupportedTimeframe, number> = {
 export function confirmedCandles(candles: Candle[], timeframe: SupportedTimeframe, now: Date): Candle[] {
   const cutoff = now.getTime();
   return candles.filter((candle) => Date.parse(candle.time) + INTERVAL_MS[timeframe] <= cutoff);
+}
+
+export function visibleCandles(candles: Candle[], now: Date): Candle[] {
+  const cutoff = now.getTime();
+  return candles.filter((candle) => Date.parse(candle.time) <= cutoff);
 }
 
 export function clearLiveScanCache(): void {
@@ -84,7 +89,7 @@ export async function runLiveScan(
     if (!options.fetcher && (!cached || cached.value !== result)) {
       candleCache.set(cacheKey, { expiresAt: Date.now() + CANDLE_CACHE_MS[timeframe], value: result });
     }
-    return { ...result, candles: confirmedCandles(result.candles, timeframe, now) };
+    return { ...result, candles: confirmedCandles(result.candles, timeframe, now), liveCandles: visibleCandles(result.candles, now) };
   };
 
   options.onProgress?.(0, targets.length);
@@ -97,15 +102,22 @@ export async function runLiveScan(
       const warnings = [m30, h1].flatMap((result, index) =>
         result.gaps.length ? [`${asset.name} ${["30M", "1H"][index]}: ${result.gaps.length}箇所の欠損`] : [],
       );
-      if (!maGate(m30.candles, direction) || !maGate(h1.candles, direction)) {
-        return { candidate: null, analyzed: true, warnings };
-      }
       const m5 = await fetchTimeframe(asset, "5m");
       if (m5.candles.length < 50) {
         return { candidate: null, analyzed: false, warnings: [...warnings, `${asset.name}: 5M確定足が不足`] };
       }
       if (m5.gaps.length) warnings.push(`${asset.name} 5M: ${m5.gaps.length}箇所の欠損`);
-      return { candidate: scoreAsset(asset, m5.candles, m30.candles, h1.candles, direction), analyzed: true, warnings };
+      const confirmedCandidate = scoreAsset(asset, m5.candles, m30.candles, h1.candles, direction);
+      const liveCandidate = scoreAsset(asset, m5.liveCandles, m30.liveCandles, h1.liveCandles, direction);
+      const formingReversal = (h1.liveCandles.length > h1.candles.length
+          && (hasEarlyBottomReversal(h1.liveCandles, direction) || hasFreshZeroReversal(h1.liveCandles, direction, "1h")))
+        || (m30.liveCandles.length > m30.candles.length
+          && (hasEarlyBottomReversal(m30.liveCandles, direction) || hasFreshZeroReversal(m30.liveCandles, direction, "30m")));
+      const candidate = formingReversal && liveCandidate
+        && (!confirmedCandidate || liveCandidate.score > confirmedCandidate.score)
+        ? { ...liveCandidate, provisional: true }
+        : confirmedCandidate;
+      return { candidate, analyzed: true, warnings };
     } catch {
       return { candidate: null, analyzed: false, warnings: [`${asset.name}: データ取得に失敗`] };
     }
