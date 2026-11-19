@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { confirmedCandles, runLiveScan, visibleCandles } from "../src/lib/live-scan.ts";
+import { bullHourTiming, confirmedCandles, runLiveScan, visibleCandles } from "../src/lib/live-scan.ts";
 import type { Candle } from "../src/lib/types.ts";
 
 const candle = (time: string, price = 100): Candle => ({ time, open: price, high: price + 1, low: price - 1, close: price + 0.5 });
@@ -48,10 +48,10 @@ test("runs a live ranked-asset slice without hardcoding its id", async () => {
   assert.equal(result.targetCount, 1);
   assert.ok(requested.some((url) => url.includes("assets/349/candles")));
   assert.deepEqual(progress, [0, 1]);
-  assert.deepEqual(requested.filter((url) => url.includes("candles")).map((url) => new URL(url).searchParams.get("detalization")).sort(), ["1h", "30m", "5m"]);
+  assert.deepEqual(requested.filter((url) => url.includes("candles")).map((url) => new URL(url).searchParams.get("detalization")).sort(), ["1h", "30m"]);
 });
 
-test("does not discard a BULL reversal before scoring just because both MAs still point down", async () => {
+test("a falling trend alone cannot enter either BULL list", async () => {
   const now = new Date("2026-09-13T12:00:00Z");
   const fetcher: typeof fetch = async (input) => {
     const url = new URL(String(input));
@@ -67,6 +67,14 @@ test("does not discard a BULL reversal before scoring just because both MAs stil
     return new Response(JSON.stringify({ data }));
   };
   const result = await runLiveScan("BULL", { now, fetcher });
-  assert.equal(result.candidates.length, 1);
-  assert.equal(result.candidates[0].name, "LATAM");
+  assert.equal(result.candidates.length, 0);
+  assert.equal(result.watches?.length, 0);
+});
+
+test("hourly BULL needs low RSI and convergence or a new upward cross",()=>{
+  assert.ok(bullHourTiming(14,17,10,16,30)?.approaching);
+  assert.ok(bullHourTiming(16,14,12,13,30)?.justCrossed);
+  assert.equal(bullHourTiming(16,14,12,13,30.01),null);
+  assert.equal(bullHourTiming(16,14,14,13,29),null);
+  assert.equal(bullHourTiming(0,2,0,4,28),null);
 });

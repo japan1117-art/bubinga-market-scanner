@@ -70,6 +70,14 @@ export function crossWatch(direction: Direction, k: number, d: number, pk: numbe
   return { k,d,rsi: strength, approaching: sign*(k-pk) > 0 && gap < sign*(pd-pk) };
 }
 
+export function bullHourTiming(k:number,d:number,pk:number,pd:number,strength:number) {
+  if (![k,d,pk,pd,strength].every(Number.isFinite) || strength > 30 || k <= pk) return null;
+  const gap = d-k;
+  const justCrossed = pk <= pd && gap < 0;
+  const approaching = gap >= 0 && gap <= 5 && gap < pd-pk;
+  return justCrossed || approaching ? {k,d,rsi:strength,approaching,justCrossed} : null;
+}
+
 export async function runLiveScan(
   direction: Direction,
   options: {
@@ -113,17 +121,22 @@ export async function runLiveScan(
         result.gaps.length ? [`${asset.name} ${["30M", "1H"][index]}: ${result.gaps.length}箇所の欠損`] : [],
       );
       const watches = ([["1H",h1],["30M",m30]] as const).flatMap(([timeframe,frame]) => {
+        if (direction === "BULL" && timeframe !== "1H") return [];
         const {k,d} = stochastic(frame.liveCandles);
-        const signal = crossWatch(direction,k.at(-1)!,d.at(-1)!,k.at(-2)!,d.at(-2)!,rsi(frame.liveCandles.map(c=>c.close)).at(-1)!);
+        const args = [k.at(-1)!,d.at(-1)!,k.at(-2)!,d.at(-2)!,rsi(frame.liveCandles.map(c=>c.close)).at(-1)!] as const;
+        const signal = direction === "BULL" ? bullHourTiming(...args) : crossWatch(direction,...args);
         return signal ? [{...signal,assetId:asset.id,name:asset.name,timeframe,provisional:frame.liveCandles.length > frame.candles.length}] : [];
       });
+      if (direction === "BULL" && (!watches.length || watches[0].approaching))
+        return {candidate:null,analyzed:true,warnings,watches};
       const m5 = await fetchTimeframe(asset, "5m");
       if (m5.candles.length < 50) {
-        return { candidate: null, analyzed: false, warnings: [...warnings, `${asset.name}: 5M確定足が不足`] };
+        return { candidate: null, watches, analyzed: false, warnings: [...warnings, `${asset.name}: 5M確定足が不足`] };
       }
       if (m5.gaps.length) warnings.push(`${asset.name} 5M: ${m5.gaps.length}箇所の欠損`);
       const confirmedCandidate = scoreAsset(asset, m5.candles, m30.candles, h1.candles, direction);
       const liveCandidate = scoreAsset(asset, m5.liveCandles, m30.liveCandles, h1.liveCandles, direction);
+      if (direction === "BULL") return {candidate:liveCandidate && {...liveCandidate,provisional:watches[0].provisional || m30.liveCandles.length > m30.candles.length || m5.liveCandles.length > m5.candles.length},analyzed:true,warnings,watches};
       const formingReversal = (h1.liveCandles.length > h1.candles.length
           && (hasEarlyBottomReversal(h1.liveCandles, direction) || hasFreshZeroReversal(h1.liveCandles, direction, "1h")))
         || (m30.liveCandles.length > m30.candles.length

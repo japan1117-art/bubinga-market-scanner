@@ -66,7 +66,7 @@ export default function Home() {
               <div className="h-full rounded-full bg-emerald-400 transition-[width] duration-300" style={{ width: `${progress.total ? progress.completed / progress.total * 100 : 0}%` }} />
             </div>
           )}
-          <p className="mt-3 text-center text-xs leading-relaxed text-white/40">MAゲート通過後、AO・RSI・Stochasticの適合度を採点</p>
+          <p className="mt-3 text-center text-xs leading-relaxed text-white/40">{direction === "BULL" ? "1H RSI 30以下 · GC接近または直後のみ" : "AO・RSI・Stochasticの適合度を採点"}</p>
         </section>
 
         {failure && (
@@ -95,8 +95,8 @@ export default function Home() {
               <div className="space-y-7">
                 <CandidateGroup icon={<Flame size={18} />} title="今すぐチャンス" items={now} tone="now" />
                 <CandidateGroup icon={<Clock3 size={18} />} title="30分以内にチャンス" items={soon} tone="soon" />
-                {!!result.watches?.length && <section><h3 className="text-sm font-bold text-sky-200">{direction === "BULL" ? "GC前" : "DC前"}の監視 · {result.watches.length}銘柄</h3>
-                  {result.watches.map(w=><article key={w.assetId} className="mt-3 rounded-2xl border border-white/10 p-4"><strong>{w.name}</strong> · {w.timeframe} · {w.approaching ? (direction === "BULL" ? "GC接近" : "DC接近") : (direction === "BULL" ? "底値圏を監視" : "高値圏を監視")}{w.provisional && "（形成中・未確定）"}<p className="mt-1 text-xs text-white/60">%K {w.k.toFixed(2)} · %D {w.d.toFixed(2)} · RSI {w.rsi.toFixed(2)}</p></article>)}</section>}
+                {!!result.watches?.length && <section><h3 className="text-sm font-bold text-sky-200">{direction === "BULL" ? "1H GC" : "DC前"}の監視 · {result.watches.length}銘柄</h3>
+                  {result.watches.map(w=><article key={w.assetId} className="mt-3 rounded-2xl border border-white/10 p-4"><strong>{w.name}</strong> · {w.timeframe} · {w.justCrossed ? "GC直後" : w.approaching ? (direction === "BULL" ? "GC接近" : "DC接近") : (direction === "BULL" ? "底値圏を監視" : "高値圏を監視")}{w.provisional && "（形成中・未確定）"}<p className="mt-1 text-xs text-white/60">%K {w.k.toFixed(2)} · %D {w.d.toFixed(2)} · RSI {w.rsi.toFixed(2)}</p></article>)}</section>}
               </div>
             )}
           </section>

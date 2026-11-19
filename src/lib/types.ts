@@ -46,6 +46,7 @@ export interface ScanResult {
   warnings: string[];
 }
 export interface CrossWatch {
+  justCrossed?: boolean;
   assetId: number; name: string; timeframe: "1H" | "30M"; provisional: boolean;
   approaching: boolean; k: number; d: number; rsi: number;
 }
