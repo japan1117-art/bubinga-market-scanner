@@ -37,10 +37,15 @@ export interface Candidate {
   noiseShort: NoiseAssessment; noiseMedium: NoiseAssessment;
 }
 export interface ScanResult {
+  watches?: CrossWatch[];
   scannedAt: string;
   source: "demo" | "bubinga";
   candidates: Candidate[];
   analyzedCount: number;
   targetCount: number;
   warnings: string[];
+}
+export interface CrossWatch {
+  assetId: number; name: string; timeframe: "1H" | "30M"; provisional: boolean;
+  approaching: boolean; k: number; d: number; rsi: number;
 }

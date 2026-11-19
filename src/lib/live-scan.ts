@@ -1,6 +1,8 @@
 import { fetchBubingaAssets } from "./bubinga-assets.ts";
 import { fetchBubingaCandles, type CandleValidation, type SupportedTimeframe } from "./bubinga-candles.ts";
 import { rankTradableAssets } from "./asset-ranking.ts";
+import { stochastic, rsi } from "./indicators.ts";
+import type { CrossWatch } from "./types.ts";
 import { selectTopCandidates } from "./candidate-selection.ts";
 import { hasEarlyBottomReversal, hasFreshZeroReversal, scoreAsset } from "./scoring.ts";
 import type { Asset, Candle, Candidate, Direction, ScanResult } from "./types.ts";
@@ -58,7 +60,15 @@ async function mapWithConcurrency<T, R>(
   return results;
 }
 
-type AssetResult = { candidate: Candidate | null; analyzed: boolean; warnings: string[] };
+type AssetResult = { candidate: Candidate | null; analyzed: boolean; warnings: string[]; watches?: CrossWatch[] };
+
+export function crossWatch(direction: Direction, k: number, d: number, pk: number, pd: number, strength: number) {
+  if (![k,d,pk,pd,strength].every(Number.isFinite)) return null;
+  const sign = direction === "BULL" ? 1 : -1;
+  const gap = sign * (d-k);
+  if (gap <= 0 || gap > 5 || (sign === 1 ? k > 10 || strength > 48 : k < 90 || strength < 52)) return null;
+  return { k,d,rsi: strength, approaching: sign*(k-pk) > 0 && gap < sign*(pd-pk) };
+}
 
 export async function runLiveScan(
   direction: Direction,
@@ -102,6 +112,11 @@ export async function runLiveScan(
       const warnings = [m30, h1].flatMap((result, index) =>
         result.gaps.length ? [`${asset.name} ${["30M", "1H"][index]}: ${result.gaps.length}箇所の欠損`] : [],
       );
+      const watches = ([["1H",h1],["30M",m30]] as const).flatMap(([timeframe,frame]) => {
+        const {k,d} = stochastic(frame.liveCandles);
+        const signal = crossWatch(direction,k.at(-1)!,d.at(-1)!,k.at(-2)!,d.at(-2)!,rsi(frame.liveCandles.map(c=>c.close)).at(-1)!);
+        return signal ? [{...signal,assetId:asset.id,name:asset.name,timeframe,provisional:frame.liveCandles.length > frame.candles.length}] : [];
+      });
       const m5 = await fetchTimeframe(asset, "5m");
       if (m5.candles.length < 50) {
         return { candidate: null, analyzed: false, warnings: [...warnings, `${asset.name}: 5M確定足が不足`] };
@@ -117,16 +132,20 @@ export async function runLiveScan(
         && (!confirmedCandidate || liveCandidate.score > confirmedCandidate.score)
         ? { ...liveCandidate, provisional: true }
         : confirmedCandidate;
-      return { candidate, analyzed: true, warnings };
+      return { candidate, analyzed: true, warnings, watches };
     } catch {
       return { candidate: null, analyzed: false, warnings: [`${asset.name}: データ取得に失敗`] };
     }
   }, options.onProgress);
 
+  const candidates = selectTopCandidates(evaluated.flatMap(item => item.candidate ? [item.candidate] : []));
+  const used = new Set(candidates.map(c=>c.assetId));
+  const watches = evaluated.flatMap(item=>item.watches ?? []).sort((a,b)=>Number(b.approaching)-Number(a.approaching))
+    .filter(w=>{ if (used.has(w.assetId)) return false; used.add(w.assetId); return true; }).slice(0,5-candidates.length);
   return {
     scannedAt: new Intl.DateTimeFormat("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(now),
     source: "bubinga",
-    candidates: selectTopCandidates(evaluated.flatMap((item) => item.candidate ? [item.candidate] : [])),
+    candidates, watches,
     analyzedCount: evaluated.filter((item) => item.analyzed).length,
     targetCount: targets.length,
     warnings: evaluated.flatMap((item) => item.warnings),

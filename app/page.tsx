@@ -16,6 +16,9 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState({ completed: 0, total: 20 });
   const [failure, setFailure] = useState<ScanFailure | null>(null);
+  function choose(value: Direction) {
+    if (value !== direction) { setDirection(value); setResult(EMPTY); setFailure(null); }
+  }
 
   async function scan() {
     setLoading(true);
@@ -51,8 +54,8 @@ export default function Home() {
         <section className="rounded-[28px] border border-white/10 bg-[#0c1a14] p-5 shadow-2xl shadow-black/20 sm:p-6">
           <p className="mb-3 text-sm font-medium text-white/60">分析方向</p>
           <div className="grid grid-cols-2 gap-3" role="group" aria-label="分析方向">
-            <DirectionButton active={direction === "BULL"} disabled={loading} onClick={() => setDirection("BULL")} tone="bull" />
-            <DirectionButton active={direction === "BEAR"} disabled={loading} onClick={() => setDirection("BEAR")} tone="bear" />
+            <DirectionButton active={direction === "BULL"} disabled={loading} onClick={() => choose("BULL")} tone="bull" />
+            <DirectionButton active={direction === "BEAR"} disabled={loading} onClick={() => choose("BEAR")} tone="bear" />
           </div>
           <button type="button" onClick={scan} disabled={loading} className="mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#e7ff55] px-5 text-base font-bold text-[#10170c] transition hover:bg-[#f0ff91] active:scale-[0.99] disabled:cursor-wait disabled:opacity-70">
             <ScanSearch size={20} aria-hidden="true" />
@@ -86,12 +89,14 @@ export default function Home() {
                 {result.warnings.map((warning) => <p key={warning}>{warning}</p>)}
               </div>
             )}
-            {result.candidates.length === 0 ? (
+            {result.candidates.length === 0 && !result.watches?.length ? (
               <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center text-sm text-white/55">60点以上の候補はありません</div>
             ) : (
               <div className="space-y-7">
                 <CandidateGroup icon={<Flame size={18} />} title="今すぐチャンス" items={now} tone="now" />
                 <CandidateGroup icon={<Clock3 size={18} />} title="30分以内にチャンス" items={soon} tone="soon" />
+                {!!result.watches?.length && <section><h3 className="text-sm font-bold text-sky-200">{direction === "BULL" ? "GC前" : "DC前"}の監視 · {result.watches.length}銘柄</h3>
+                  {result.watches.map(w=><article key={w.assetId} className="mt-3 rounded-2xl border border-white/10 p-4"><strong>{w.name}</strong> · {w.timeframe} · {w.approaching ? (direction === "BULL" ? "GC接近" : "DC接近") : (direction === "BULL" ? "底値圏を監視" : "高値圏を監視")}{w.provisional && "（形成中・未確定）"}<p className="mt-1 text-xs text-white/60">%K {w.k.toFixed(2)} · %D {w.d.toFixed(2)} · RSI {w.rsi.toFixed(2)}</p></article>)}</section>}
               </div>
             )}
           </section>
